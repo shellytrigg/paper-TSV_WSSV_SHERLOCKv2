@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "TSV_qPCR_analyze_all"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -11,14 +11,8 @@ load libraries
 library(readxl)
 library(tidyr)
 library(dplyr)
-library(viridis)
 library(ggplot2)
 library(ggpubr)
-library(plotrix)
-library(mgcv)
-library(drc)
-library(scales)
-
 
 ```
 
@@ -31,13 +25,13 @@ Read in data
 #First I opened the .eds files in QuantStudio
 # I examined across all the experiments the cycle at which the earliest Cas signal starts coming up. I picked the cycle before that as the maximum cycle for defining the baseline. I selected 1-4 for all experiments. I made sure Rox was not included. I exported the results file in excel format. Then I read in each data set:
 
-data0830 <- read_xlsx("2022-08-30_TSV qPCR sample eval_Results_QuantStudio 12K Flex_export.xlsx", col_names = T,range = "A33:Y250")
+data0830 <- read_xlsx("../data/TSV_qPCR/Ct_results/2022-08-30_TSV qPCR sample eval_Results_QuantStudio 12K Flex_export.xlsx", col_names = T,range = "A33:Y250")
 
-data0901 <- read_xlsx("2022-09_01_TSV qPCR sample eval-1_Results_QuantStudio 12K Flex_export.xlsx", col_names = T,range = "A36:Y250")
+data0901 <- read_xlsx("../data/TSV_qPCR/Ct_results/2022-09_01_TSV qPCR sample eval-1_Results_QuantStudio 12K Flex_export.xlsx", col_names = T,range = "A36:Y250")
 
-data0912 <- read_xlsx("2022-09_12_TSV qPCR sample eval-3_Results_QuantStudio 12K Flex_export.xlsx", col_names = T,range = "A33:Y250")
+data0912 <- read_xlsx("../data/TSV_qPCR/Ct_results/2022-09_12_TSV qPCR sample eval-3_Results_QuantStudio 12K Flex_export.xlsx", col_names = T,range = "A33:Y250")
 
-data0913 <- read_xlsx("2022-09_13_TSV qPCR sample eval-4_Results_QuantStudio 12K Flex_export.xlsx", col_names = T,range = "A33:Y250")
+data0913 <- read_xlsx("../data/TSV_qPCR/Ct_results/2022-09_13_TSV qPCR sample eval-4_Results_QuantStudio 12K Flex_export.xlsx", col_names = T,range = "A33:Y250")
 
 
 ```
@@ -146,12 +140,12 @@ QS_data_filtered <- merge(QS_data_filtered,slopes, by = c("date"))
 QS_data_filtered <- QS_data_filtered %>% mutate(log10cp = (CT - intercept)/slope)
 
 
-QS_data_filtered_summ <- QS_data_filtered%>% group_by(date,`Sample Name`) %>% summarise(mean_CT = mean(CT), sd_CT = sd(CT), mean_log10cp = mean(log10cp), sd_log10cp = sd(log10cp), mean_copies = mean(10^log10cp),sd_copies = sd(10^log10cp))
+QS_data_filtered_summ <- QS_data_filtered%>% group_by(date,`Sample Name`, template) %>% summarise(mean_CT = mean(CT), sd_CT = sd(CT), mean_log10cp = mean(log10cp), sd_log10cp = sd(log10cp), mean_copies = mean(10^log10cp),sd_copies = sd(10^log10cp))
 ```
 
 plot CT vs copies
 ```{r}
-QS_data_filtered_summ %>% mutate(sample_type = ifelse(grepl("p", `Sample Name`), "standard", "unknown"))%>% filter(grepl("p", `Sample Name`)) %>% filter(date != "08-30" | template != 7) %>%ggplot(aes(x = as.numeric(template), y = CT, color = date))+ geom_point(position = position_dodge(width = 0.5)) + geom_smooth(method = "lm", se = F)+ stat_regline_equation(label.x = c(rep(7, 9)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 2)+ theme_bw() + labs(color = "method", y = "Ct", x = "copies") +  ggtitle("standards from different experiments") + facet_wrap(~date, scale = "free_y")+ scale_x_continuous(breaks =  c(seq(0,13,1)), limits = c(0,13))
+QS_data_filtered_summ %>% mutate(sample_type = ifelse(grepl("p", `Sample Name`), "standard", "unknown"))%>% filter(grepl("p", `Sample Name`)) %>% filter(date != "08-30" | template != 7) %>%ggplot(aes(x = as.numeric(template), y = mean_CT, color = date))+ geom_point(position = position_dodge(width = 0.5)) + geom_smooth(method = "lm", se = F)+ stat_regline_equation(label.x = c(rep(7, 9)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 2)+ theme_bw() + labs(color = "date", y = "Ct", x = "copies") +  ggtitle("standards from different experiments after filtering data") + scale_x_continuous(breaks =  c(seq(0,13,1)), limits = c(0,13))
 
 
 ```
@@ -160,7 +154,7 @@ QS_data_filtered_summ %>% mutate(sample_type = ifelse(grepl("p", `Sample Name`),
 read in dilution data
 ```{r}
 
-qPCR_dil_data <- read_xlsx("../TSV_dil_data.xlsx", sheet = "SRM_qPCR")
+qPCR_dil_data <- read_xlsx("../data/TSV_dil_data.xlsx", sheet = "SRM_qPCR")
 
 #merge dilution data with copies data
 QS_data_filtered_summ_val <- merge(QS_data_filtered_summ, qPCR_dil_data, by = "Sample Name")
@@ -171,6 +165,6 @@ QS_data_filtered_summ_val$copies_per_uL_OG_sample <- QS_data_filtered_summ_val$m
 
 QS_data_filtered_summ_val$sd_copies_per_uL_OG_sample <- QS_data_filtered_summ_val$sd_copies/ as.numeric(QS_data_filtered_summ_val$`uL of original sample/rxn`)
 
-write.csv(QS_data_filtered_summ_val, "TSV_qPCR_SRM.csv", quote = F, row.names = F)
+write.csv(QS_data_filtered_summ_val %>% dplyr::select(-template), "../intermediate_files/TSV_qPCR_SRM.csv", quote = F, row.names = F)
 
 ```

@@ -13,9 +13,7 @@ library(tidyr)
 library(dplyr)
 library(ggplot2)
 library(ggpubr)
-library(plotrix)
-library(mgcv)
-library(scales)
+library(gtools)
 
 ```
 
@@ -361,7 +359,7 @@ plot LOD experiments
 
 ```{r}
 
-QS_data_LOD <- QS_data_filtered %>% filter(grepl("02-09|12-21|03-24|04-22|06-23",date)) %>% filter(!grepl("Val",template)) %>% filter(sample_type == "UNK") %>% mutate(`Sample Name` = gsub("_VP28.31t","",`Sample Name`)) %>% mutate(copies = gsub(".*_", "", `Sample Name`))
+QS_data_LOD <- QS_data_filtered %>% filter(grepl("02-09|12-21|03-24|04-22|06-23",date))%>% filter(grepl("Pvan|TSV", `Sample Name`)) %>% mutate(`Sample Name` = gsub("_VP28.31t","",`Sample Name`)) %>% mutate(template = ifelse(grepl("^1", `Sample Name`),gsub(".*_","", `Sample Name`),template)) %>% mutate(copies = ifelse(grepl("^[A-z]", `Sample Name`),gsub(".*_", "", `Sample Name`),gsub("_.*", "", `Sample Name`)))
 
 
 QS_data_LOD$copies <- gsub("1e11",format(100000000000,scientific = T), QS_data_LOD$copies)
@@ -383,7 +381,7 @@ QS_data_LOD$copies <- ifelse(QS_data_LOD$virus == "TSV" & QS_data_LOD$date == "0
 
 QS_data_LOD %>% filter(!grepl("VP28",template)) %>% filter(!(copies ==100 & date =="03-24")) %>% filter(copies >= 100)%>%ggplot(aes(x = log10(copies), y = CT, color = interaction(date,template), group = interaction(date,template)))+ geom_point(aes(shape = virus),position = position_dodge(width = 0.5)) + geom_smooth(method = "lm", se = F)+ stat_regline_equation(label.x = c(rep(4, 9)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 3)+ theme_bw() + labs(color = "name", y = "Ct", x = "log10 copies") +  ggtitle("standards from different experiments") + scale_x_continuous(breaks =  c(seq(0,11,1))) + facet_wrap(template~virus)
 
-jpeg("LOD_CTmeans_x_actual_copies.jpg", width = 5, height = 7, units = "in", res = 300)
+jpeg("../Supplemental_Material/Supp_figs/FigS3bd_gDNA_LOD_CTmeans_x_actual_copies.jpg", width = 5, height = 7, units = "in", res = 300)
 a <- QS_data_LOD %>%  filter(virus == "TSV") %>% filter(!grepl("VP28",template)) %>% filter(!(copies ==100 & date =="03-24")) %>% filter(copies >= 100) %>%  group_by(date,virus,template, copies) %>% summarise(mean = mean(CT), sd = sd(CT)) %>% ggplot(aes(x = log10(copies), y = mean, color = interaction(date,template), group = interaction(date,template))) + geom_point(position = position_dodge(width = 0.1)) + geom_errorbar(aes(ymin = mean-sd, ymax = mean + sd),alpha = 0.5, size = 0.5, width = 0,position = position_dodge(width = 0.1))+ geom_smooth(method = "lm", se = F, size = 0.5, linetype = 2)+ stat_regline_equation(label.x = c(rep(5.5, 9)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 3)+ theme_bw() + labs(color = "sample", y = "Ct", x = "log10 copies") + scale_x_continuous(breaks =  c(seq(1,10,1)), limits = c(1,10)) +scale_y_continuous(breaks =  c(seq(4,14,2)), limits = c(4,14))+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank())
 
@@ -434,7 +432,7 @@ QS_data_filtered_summ <- QS_data_filtered%>% group_by(date, virus, template) %>%
 #plot standards (supp fig. 3a-b)
 ```{r}
 #standard CT means x actual copies
-jpeg("standardCTmeans_x_actual_copies.jpg", width = 5, height = 7, units = "in", res = 300)
+jpeg("../Supplemental_Material/Supp_figs/FigS3ac_standardCTmeans_x_actual_copies.jpg", width = 5, height = 7, units = "in", res = 300)
 #QS_data_filtered_summ %>% filter(!grepl("^[A-z]",template)) %>% mutate(template = as.numeric(template)) %>% ggplot(aes(x = log10(template), y = mean_CT, color = date)) + geom_point()+ geom_errorbar(aes(ymin = mean_CT-sd_CT, ymax = mean_CT + sd_CT),alpha = 0.5, size = 0.5, width = 0.1) + geom_smooth(method = "lm", se = F, size = 0.5)+ stat_regline_equation(label.x = c(rep(6,5)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 4)+ theme_bw() + labs(color = "experiment", y = "Ct", x = "copies") + facet_wrap(~virus, scale = "free")+ theme(text = element_text(size = 16)) + scale_x_continuous(limits = c(2,10),breaks =  c(seq(0,10,1)))
 
 a <- QS_data_filtered_summ %>% filter(!grepl("^[A-z]",template)) %>% mutate(template = as.numeric(template)) %>%  filter(virus == "TSV")%>% ggplot(aes(x = log10(template), y = mean_CT, color = date)) + geom_point()+ geom_errorbar(aes(ymin = mean_CT-sd_CT, ymax = mean_CT + sd_CT),alpha = 0.5, size = 0.5, width = 0) + geom_smooth(method = "lm", se = F, size = 0.5, linetype = 2)+ stat_regline_equation(label.x = 6,aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 3)+ theme_bw() + labs(color = "experiment", y = "Ct", x = "copies") + theme(text = element_text(size = 12)) + scale_x_continuous(limits = c(2,10),breaks =  c(seq(0,10,1))) +theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
@@ -454,7 +452,7 @@ dev.off()
 
 
 ```{r}
-jpeg("subset_standardCTmeans_x_actual_copies.jpg", width = 7, height = 3, units = "in", res = 300)
+jpeg("../Figs/Fig2ab_subset_standardCTmeans_x_actual_copies.jpg", width = 7, height = 3, units = "in", res = 300)
 
 a <- QS_data_filtered_summ %>% filter(!grepl("^[A-z]",template)) %>% mutate(template = as.numeric(template)) %>% filter(date == "04-01" & virus == "TSV")%>% ggplot(aes(x = log10(template), y = mean_CT)) + geom_point()+ geom_errorbar(aes(ymin = mean_CT-sd_CT, ymax = mean_CT + sd_CT),alpha = 0.5, size = 0.5, width = 0) + geom_smooth(method = "lm", se = F, size = 0.5, color = "black", linetype = 2)+ stat_regline_equation(label.x = 4,aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 4)+ theme_bw() + labs(color = "experiment", y = "Ct", x = "copies") + theme(text = element_text(size = 12)) + scale_x_continuous(limits = c(2,10),breaks =  c(seq(0,10,1))) +theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank())
@@ -481,7 +479,7 @@ unk_samples[is.na(unk_samples)] = "neg"
 #combine with CT values
 spec <- merge(QS_data_filtered%>%filter(sample_type == "UNK")  %>% filter(!grepl("02-09|12-21|03-24|06-23",date)) %>% filter(!grepl("TSV-5R|Water", template)) %>% filter(!(template == "WSSV6" & date == "04-20")) %>%  filter(!(template == "Pvan009" & date == "04-12pm")) %>% dplyr::select(virus, template, CT), unk_samples, by =c("virus", "template"), all = T) %>% mutate(species = gsub("Pvan", "WSSV", template)) %>% mutate(species = gsub("[0-9]|[0-9][0-9]|[0-9][0-9][0-9]", "", species)) %>% mutate(CT = ifelse(is.na(CT),0,CT)) %>%mutate(species = gsub("-", "", species))%>% mutate(species = gsub("Val\\.", "TSV", species)) %>% mutate(species = gsub(" PVAN", "", species)) %>% group_by(species,template,virus,result) %>% summarise(n = n(),mean = mean(CT), sd = sd(CT))%>% group_by(species, virus,result) %>% summarise(n = n(), mean_mean = mean(mean), sd_mean = sd(mean)) %>% mutate(spec_label = factor(paste0(species," (",n,")")))
                                                                   
-jpeg("specificity.jpg", width = 7, height = 3, units = "in", res = 300)
+jpeg("../Figs/Fig2cd_specificity.jpg", width = 7, height = 3, units = "in", res = 300)
 a <-spec %>% filter(virus == "TSV") %>% ggplot(.,aes(x = factor(spec_label, levels = c("TSV (31)", "TSV (4)", "EHP (2)", "EMS (2)", "IHHNV (2)", "IMNV (2)", "WSSV (2)", "SPF (10)")) , y = mean_mean)) + geom_bar(color = "black",fill = "gray80",stat="identity") + geom_errorbar(aes(ymin = mean_mean - sd_mean, ymax = mean_mean +sd_mean, width= 0.25)) + labs(x = "Sample", y = "Ct") + theme_bw()  + theme(text = element_text(size = 12),axis.text.x=element_text(angle=45, hjust = 1))
 
 b <-spec %>% filter(virus == "WSSV") %>% ggplot(.,aes(x = factor(spec_label, levels = c("WSSV (32)", "WSSV (3)", "EHP (2)", "EMS (2)", "IHHNV (2)", "IMNV (2)", "TSV (2)", "SPF (10)")) , y = mean_mean)) + geom_bar(color = "black",fill = "gray80",stat="identity") + geom_errorbar(aes(ymin = mean_mean - sd_mean, ymax = mean_mean +sd_mean, width= 0.25)) + labs(x = "Sample", y = "Ct") + theme_bw()  + theme(text = element_text(size = 12),axis.text.x=element_text(angle=45, hjust = 1))
@@ -504,7 +502,7 @@ dev.off()
 
 #for WSSV
 
-dil_data_WSSV <- read_xlsx("../SHERLOCKv2_WSSV_validation_SAT_2022.xlsx", skip = 1,col_names = T)
+dil_data_WSSV <- read_xlsx("../data/SHERLOCKv2_WSSV_validation_SAT_2022.xlsx", skip = 1,col_names = T)
 
 #remove underscore from sample names
 dil_data_WSSV$template <- dil_data_WSSV$Sample
@@ -524,7 +522,7 @@ dil_data_WSSV$virus <- "WSSV"
 # for TSV
 
 
-dil_data_TSV <- read_xlsx("../TSV_dil_data.xlsx",sheet = "SHERLOCK",col_names = T)
+dil_data_TSV <- read_xlsx("../data/TSV_dil_data.xlsx",sheet = "SHERLOCK",col_names = T)
 #rename sample column for merging with all_pred
 colnames(dil_data_TSV)[2] <- "template"
 dil_data_TSV$virus <- "TSV"
@@ -544,7 +542,7 @@ QS_data_filtered_summ_dil <- merge(QS_data_filtered_summ %>% mutate(date = gsub(
 
 ```{r}
 ##### read in arun dhar's data ####
-TSV_qPCR <- read_xlsx("../TSV RNA from ArunDhar 20201124.xlsx", col_names = T, skip = 3,sheet = "Tech Rep Data - AD")
+TSV_qPCR <- read_xlsx("../data/TSV RNA from ArunDhar 20201124.xlsx", col_names = T, skip = 3,sheet = "Tech Rep Data - AD")
 
 ##### format qPCR data ####
 #first add the shrimp strain information from the dilution data with the qPCR data. The unique function is used because some samples were tested on different days using different dilutions. Since we're only using the sample name information here, the unique function removes redundant lines. 
@@ -556,7 +554,7 @@ TSV_qPCR <- TSV_qPCR %>% mutate(SHERLOCK_cn = NA, SHERLOCK_std = NA, preparer = 
 
 
 #### read in TSV qPCRs by SRM ####
-TSV_qPCR_SRM <- read.csv("../2022-10-28_TSV_qPCR_SRM/TSV_qPCR_SRM.csv")
+TSV_qPCR_SRM <- read.csv("../intermediate_files/TSV_qPCR_SRM.csv")
 #create new columns that will match with other data frames later on
 TSV_qPCR_SRM <- TSV_qPCR_SRM %>% mutate(SHERLOCK_cn = NA, SHERLOCK_std = NA, template = Sample.Name, qPCR_cn = copies_per_uL_OG_sample, qPCR_std = sd_copies_per_uL_OG_sample, virus = "TSV", preparer = "SRM")
 
@@ -581,12 +579,12 @@ TSV_qPCR_all$qPCR_cn <- ifelse(TSV_qPCR_all$qPCR_cn =="Undetermined", 0, as.nume
 
 #### plot susceptible vs. resistant ####
 #This creates a histogram of the number of shrimp binned by viral quantities on the x axis. It facets Roberto's and SRM's data. 
-jpeg("TSV_qPCR_suscept_v_resist.jpg", width = 8, height = 4, units = "in", res = 300)
+jpeg("../intermediate_files/TSV_qPCR_suscept_v_resist.jpg", width = 8, height = 4, units = "in", res = 300)
 ggplot(TSV_qPCR_all) + geom_histogram(aes(qPCR_cn, fill = type),color = "black", binwidth = 1, position = position_dodge()) + scale_x_log10(limits = c(10^0, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))+ scale_y_continuous(breaks = seq(1,20,2)) + facet_wrap(~preparer) + theme_bw() + labs(y = "number of animals", x = "qPCR predicted copies/uL", fill = "shrimp strain") 
 dev.off()
 
 #### plot susceptible vs. resistant for just SRM data ####
-jpeg("TSV_qPCR_suscept_v_resist_SRM.jpg", width = 4, height = 3, units = "in", res = 300)
+jpeg("../Figs/Fig3c_TSV_qPCR_suscept_v_resist_SRM.jpg", width = 4, height = 3, units = "in", res = 300)
 ggplot(TSV_qPCR_all %>% filter(preparer == "SRM")) + geom_histogram(aes(qPCR_cn, fill = type),color = "black", binwidth = 1, position = position_dodge()) + scale_x_log10(limits = c(10^0, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))+ scale_y_continuous(breaks = seq(1,20,2)) + theme_bw() + labs(y = "number of animals", x = "qPCR predicted copies/uL", fill = "shrimp strain") + theme(text = element_text(size = 14),legend.position=c(0.8,0.8),legend.background = element_rect(fill = "white", color = "black")) 
 dev.off()
 ```
@@ -594,7 +592,7 @@ dev.off()
 #### read in Arun's WSSV qPCR data and SHERLOCK v1 data ####
 
 ```{r}
-WSSV_qPCR <- read_xlsx("../../../../../Tim Sullivan Data/Experiments_Projects/Diagnostics/results/quant_master_data.xlsx", col_names = T)
+WSSV_qPCR <- read_xlsx("../data/quant_master_data.xlsx", col_names = T)
 #correct the sample name with capital P in pvan
 WSSV_qPCR$Sample <- gsub("p","P", WSSV_qPCR$Sample)
 #create a column to denote the virus
@@ -648,13 +646,13 @@ QS_data_filtered_summ_dil_qPCR_keep_repeats <- rbind(unique(QS_data_filtered_sum
 ggplot(QS_data_filtered_summ_dil_qPCR_keep_repeats, aes(x = qPCR_cn, y = `SHERLOCK_cp/uL_OG`))+ geom_point(size = 1)+theme_bw() + labs(y = "SHERLOCKv2 predicted copies/uL", x = "qPCR predicted copies/uL") + scale_x_log10(limits = c(10^-1, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + scale_y_log10(limits = c(10^-1, 10^10),breaks =trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x))) +  stat_cor(method = "pearson", size = 5) + theme(text = element_text(size = 10)) + facet_wrap(~virus)
   
 #corr plot for just TSV with shrimp strain colored
-jpeg("TSV_qPCR_SRMxSHERLOCKv2.jpg", width = 4, height = 3.5, units = "in", res = 300)
+jpeg("../Figs/Fig3d_TSV_qPCR_SRMxSHERLOCKv2.jpg", width = 4, height = 3.5, units = "in", res = 300)
 QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "TSV") %>% mutate(shrimp_strain = ifelse(grepl("[3][1-5]", template),"susceptible", "resistant")) %>% ggplot(aes(x = qPCR_cn, y = `SHERLOCK_cp/uL_OG`))+ geom_point(aes(color = shrimp_strain),size = 2)+theme_bw() + labs(y = "SHERLOCKv2 predicted copies/uL", x = "qPCR predicted copies/uL", color = "shrimp strain") + scale_x_log10(limits = c(10^-1, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + scale_y_log10(limits = c(10^-1, 10^10),breaks =trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x))) +  stat_cor(label.y.npc="top", label.x.npc = "middle", method = "pearson", size = 4) + theme(text = element_text(size = 14), legend.position=c(0.2,0.8),legend.background = element_rect(fill = "white", color = "black"))
 dev.off()
 
 
-#### plot susceptible vs. resistant for just SRM data ####
-jpeg("TSV_qPCR_suscept_v_resist_SRMqPCRvSHERLOCK.jpg", width = 4.5, height = 4, units = "in", res = 300)
+#### histogram plot susceptible vs. resistant for just SRM data ####
+jpeg("../intermediate_files/TSV_qPCR_suscept_v_resist_SRMqPCRvSHERLOCK_histogram.jpg", width = 4.5, height = 4, units = "in", res = 300)
 ggplot( QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "TSV") %>% mutate(shrimp_strain = ifelse(grepl("[3][1-5]", template),"susceptible", "resistant")) %>% pivot_longer(cols = c(11,12,15,16), names_to ="meth", values_to = "copies") %>% mutate(method = gsub("_.*","",meth), stat = gsub(".*_", "",meth)) %>% mutate(stat = ifelse(grepl("s", stat), "std","mean")) %>% dplyr::select(-meth) %>% pivot_wider(names_from = stat, values_from = copies))+ geom_histogram(aes(mean, fill = shrimp_strain),color = "black", binwidth = 1, position = position_dodge()) + scale_x_log10(limits = c(10^0, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))+ scale_y_continuous(breaks = seq(1,20,2)) + theme_bw() + labs(y = "number of animals", x = "qPCR predicted copies/uL", fill = "shrimp strain") + theme(text = element_text(size = 14),legend.position="top")  + facet_wrap(~method)
 dev.off()
 
@@ -669,12 +667,12 @@ wilcox.test(`SHERLOCK_cp/uL_OG` ~ shrimp_strain, data = QS_data_filtered_summ_di
 
 #### corr plot for WSSV SHERLOCKv2 vs. qPCR and SHERLOCKv1 #####
 ```{r}
-jpeg("WSSV_qPCRxSHERLOCKv2.jpg", width = 4, height = 3.5, units = "in", res = 300)
+jpeg("../Figs/Fig4a_WSSV_qPCRxSHERLOCKv2.jpg", width = 4, height = 3.5, units = "in", res = 300)
 QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "WSSV") %>% ggplot(aes(x = qPCR_cn, y = `SHERLOCK_cp/uL_OG`))+ geom_point(size = 2)+theme_bw() + labs(y = "SHERLOCKv2 predicted copies/uL", x = "qPCR predicted copies/uL") + scale_x_log10(limits = c(10^-1, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + scale_y_log10(limits = c(10^-1, 10^10),breaks =trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x))) +  stat_cor(label.y.npc="top", label.x.npc = "left", method = "pearson", size = 4) + theme(text = element_text(size = 14))
 dev.off()
 
 #### corr plot for WSSV SHERLOCKv2 vs. SHERLOCKv1 #####
-jpeg("WSSV_SHERLOCKv1xSHERLOCKv2.jpg", width = 4, height = 3.5, units = "in", res = 300)
+jpeg("../Figs/Fig4b_WSSV_SHERLOCKv1xSHERLOCKv2.jpg", width = 4, height = 3.5, units = "in", res = 300)
 QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "WSSV") %>% ggplot(aes(x = SHERLOCK_cn, y = `SHERLOCK_cp/uL_OG`))+ geom_point(size = 2)+theme_bw() + labs(y = "SHERLOCKv2 predicted copies/uL", x = "SHERLOCKv1 predicted copies/uL") + scale_x_log10(limits = c(10^-1, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + scale_y_log10(limits = c(10^-1, 10^10),breaks =trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x))) +  stat_cor(label.y.npc="top", label.x.npc = "left", method = "pearson", size = 4) + theme(text = element_text(size = 14))
 dev.off()
 ```
@@ -685,7 +683,7 @@ tableS3 <- unique(merge(dil_data_WSSV %>% dplyr::select(Sample, template),QS_dat
 
 colnames(tableS3) <- c("Target", "Sample Name", "qPCR predicted copies/uL (Mean)", "qPCR predicted copies/uL (Std Dev)", "SHERLOCKv1 predicted copies/uL (mean)", "SHERLOCKv1 predicted copies/uL (Std Dev)", "SHERLOCKv2 predicted copies/uL (Mean)", "SHERLOCKv2 predicted copies/uL (Std Dev)")
 
-write.csv(tableS3, "TableS3.csv", row.names = F, quote = F)
+write.csv(tableS3, "../Supplemental_Material/Tables/TableS3.csv", row.names = F, quote = F)
 ```
 
 
@@ -694,7 +692,7 @@ write.csv(tableS3, "TableS3.csv", row.names = F, quote = F)
 ### coefficient of variation across technical replicates ####
 
 ```{r}
-jpeg("WSSV_SHERLOCKv1xSHERLOCKv2_CoV.jpg", width = 5, height = 4, units = "in", res = 300)
+jpeg("../Supplemental_Material/Supp_figs/FigS5a_WSSV_SHERLOCKv1xSHERLOCKv2_CoV.jpg", width = 5, height = 4, units = "in", res = 300)
  tableS3 %>% filter(Target == "WSSV") %>% mutate(qPCR_cv = `qPCR predicted copies/uL (Std Dev)`/`qPCR predicted copies/uL (Mean)`, SHERLOCKv1_cv = `SHERLOCKv1 predicted copies/uL (Std Dev)`/`SHERLOCKv1 predicted copies/uL (mean)`, SHERLOCKv2_cv = `SHERLOCKv2 predicted copies/uL (Std Dev)`/`SHERLOCKv2 predicted copies/uL (Mean)`) %>% pivot_longer(cols = 9:11, names_to = "method", values_to = "cv") %>% mutate(method = gsub("_cv","", method)) %>% mutate(qPCR_bin = cut(`qPCR predicted copies/uL (Mean)`, breaks = c(0,1000,1000000,10000000000)) ) %>% mutate(qPCR_bin = gsub("\\(", "", qPCR_bin)) %>% mutate(qPCR_bin = gsub(","," to ", qPCR_bin)) %>% mutate(qPCR_bin = gsub("]", "", qPCR_bin)) %>%filter(method != "qPCR") %>% ggplot(aes(x = method, y = cv)) + geom_boxplot(color = "gray60", width = 0.4, outlier.shape = NA)  + geom_jitter(aes(color = qPCR_bin),width = 0.2, alpha = 0.7) + theme_bw() + labs(y = "coefficient of variation across technical replicates", color = "qPCR predicted \n viral copies") + scale_color_manual(values = c("gold2", "darkorange2", "red4"))
 dev.off()
 ```
@@ -702,7 +700,7 @@ dev.off()
 
 #### qPCR vs. SHERLOCKv2 predicted viral copies foldchange ####
 ```{r}
-jpeg("qPCRvsSHERLOCKv2_ViralCopiesFC.jpg", width = 4.5, height = 4, units = "in", res = 300)
+jpeg("../Supplemental_Material/Supp_figs/FigS5b_qPCRvsSHERLOCKv2_ViralCopiesFC.jpg", width = 4.5, height = 4, units = "in", res = 300)
 tableS3 %>% mutate(fc = foldchange(`qPCR predicted copies/uL (Mean)`, `SHERLOCKv2 predicted copies/uL (Mean)`), direction = ifelse(fc < 0, "over", "under")) %>% filter(!is.na(fc))%>% mutate(direction = ifelse(-5 <= fc & fc <= 5, "similar",direction))  %>% ggplot(aes(x = Target, y = log10(abs(fc)))) + geom_boxplot(color = "gray60",width = 0.4, outlier.shape = NA) + geom_jitter(aes(color = direction), width = 0.2) + theme_bw() + labs(y = "qPCR:SHERLOCKv2 foldchange (log10)", color = "viral copies \n estimate", x = "target")
 dev.off()
 
@@ -712,5 +710,5 @@ dev.off()
 #### Alternative cor plots ####
 ```{r}
 #cor plots with sample labels and error bars
-rbind(unique(QS_data_filtered_summ_dil_qPCR %>% filter(template %in%tested2x$template & grepl(paste(unique(tested2x$date), collapse="|"),date))),QS_data_filtered_summ_dil_qPCR %>% filter(!(template %in%tested2x$template))) %>% ggplot(aes(x = qPCR_cn, y = `SHERLOCK_cp/uL_OG` , label = template)) + geom_errorbar(aes(ymin = `SHERLOCK_cp/uL_OG` - `SHERLOCK_cp/uL_OG_sd`, ymax = `SHERLOCK_cp/uL_OG` + `SHERLOCK_cp/uL_OG_sd`)) + geom_errorbarh(aes(xmin = qPCR_cn - qPCR_std, xmax = qPCR_cn + qPCR_std)) + geom_point(size = 2)+theme_bw() + labs(y = "SHERLOCKv2 predicted copies/uL", x = "qPCR predicted copies/uL") + scale_x_log10(limits = c(1, 10^9),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + scale_y_log10(limits = c(1, 10^9),breaks =trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x))) +  stat_cor(method = "pearson", size = 7) + theme(text = element_text(size = 10)) + geom_text(hjust = -0.1, vjust= -0.5,size = 2) + facet_wrap(~virus)
+#rbind(unique(QS_data_filtered_summ_dil_qPCR %>% filter(template %in%tested2x$template & grepl(paste(unique(tested2x$date), collapse="|"),date))),QS_data_filtered_summ_dil_qPCR %>% filter(!(template %in%tested2x$template))) %>% ggplot(aes(x = qPCR_cn, y = `SHERLOCK_cp/uL_OG` , label = template)) + geom_errorbar(aes(ymin = `SHERLOCK_cp/uL_OG` - `SHERLOCK_cp/uL_OG_sd`, ymax = `SHERLOCK_cp/uL_OG` + `SHERLOCK_cp/uL_OG_sd`)) + geom_errorbarh(aes(xmin = qPCR_cn - qPCR_std, xmax = qPCR_cn + qPCR_std)) + geom_point(size = 2)+theme_bw() + labs(y = "SHERLOCKv2 predicted copies/uL", x = "qPCR predicted copies/uL") + scale_x_log10(limits = c(1, 10^9),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + scale_y_log10(limits = c(1, 10^9),breaks =trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x))) +  stat_cor(method = "pearson", size = 7) + theme(text = element_text(size = 10)) + geom_text(hjust = -0.1, vjust= -0.5,size = 2) + facet_wrap(~virus)
 ```

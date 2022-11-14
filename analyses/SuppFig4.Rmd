@@ -1,5 +1,5 @@
 ---
-title: "SuppFig5"
+title: "SuppFig4"
 output: html_document
 date: '2022-11-10'
 ---
@@ -13,10 +13,8 @@ load libraries
 library(readxl)
 library(tidyr)
 library(dplyr)
-library(viridis)
 library(ggplot2)
 library(ggpubr)
-library(plotrix)
 
 
 ```
@@ -25,12 +23,10 @@ library(plotrix)
 read in data
 
 ```{r}
-#First I opened the raw .xml data in excel and then saved it as an xlsx file. Ideally I would read the xml data into R directly, but I didn't want to waste time doing that. 
 
+meta_data <- read_xlsx("../data/WSSV_SHERLOCKv2/raw/2022-02-10 SAT SHERLOCKv2 STD curve_Sample Setup_QuantStudio 12K Flex_export.xlsx", skip= 33, col_names = T)
 
-meta_data <- read_xlsx("../../data/2022-02-10/2022-02-10 SAT SHERLOCKv2 STD curve_Sample Setup_QuantStudio 12K Flex_export.xlsx", skip= 33, col_names = T)
-
-data2 <- read_xlsx("../../data/2022-02-10/2022-02-10 SAT SHERLOCKv2 STD curve_Multicomponent Data_QuantStudio 12K Flex_export.xlsx", skip= 33, col_names = T)
+data2 <- read_xlsx("../data/WSSV_SHERLOCKv2/raw/2022-02-10 SAT SHERLOCKv2 STD curve_Multicomponent Data_QuantStudio 12K Flex_export.xlsx", skip= 33, col_names = T)
 
 
 
@@ -49,11 +45,6 @@ data2_l <- data2_l[!is.na(data2_l$RFUs),]
 
 #merge with meta data
 data2_l <- merge(meta_data[,2:3], data2_l, by = "Well Position")
-
-#melt_data_l <- merge(meta_data[,2:3], melt_data, by = "Well Position")
-
-
-
 
 ```
 
@@ -86,17 +77,6 @@ for(i in 1:nrow(data2_l)){
   }
 }
 
-# for(i in 1:nrow(melt_data_l)){
-#   if(grepl("1|4|7|10",melt_data_l$`Well Position`[i])){
-#     melt_data_l$Rep[i] <- 1
-#   }
-#   if(grepl("2|5|8|11",melt_data_l$`Well Position`[i])){
-#     melt_data_l$Rep[i] <- 2
-#   }
-#   if(grepl("3|6|9|12",melt_data_l$`Well Position`[i])){
-#     melt_data_l$Rep[i] <- 3
-#   }
-# }
 
 
 
@@ -116,17 +96,6 @@ data2_l$template <- gsub("1e2",format(100,scientific = T), data2_l$template)
 data2_l$template <- gsub("1e1",format(10,scientific = T), data2_l$template)
 
 data2_l$dye <- ifelse(data2_l$dye == "VIC","VIC (SYTO-82, LAMP)","FAM (Cas cleavage)")
-
-
-# melt_data_l$template <- gsub(".*_", "", melt_data_l$`Sample Name`)
-# melt_data_l$primer <- gsub("_.*", "", melt_data_l$`Sample Name`)
-# #melt_data_l$template <- gsub("_[^_]*$|^[^_]*_","", melt_data_l$`Sample Name`,perl=T)
-# 
-# melt_data_l$template <- gsub("1e4",format(10000,scientific = T), melt_data_l$template)
-# melt_data_l$template <- gsub("1e3",format(1000,scientific = T), melt_data_l$template)
-# melt_data_l$template <- gsub("1e2",format(100,scientific = T), melt_data_l$template)
-
-
 
 
 
@@ -149,18 +118,11 @@ data2_l$rel_RFUs <- as.numeric(data2_l$RFUs) - as.numeric(data2_l$t0_RFUs)
 read in data
 
 ```{r}
-#First I opened the raw .xml data in excel and then saved it as an xlsx file. Ideally I would read the xml data into R directly, but I didn't want to waste time doing that. 
+
+meta_data3 <- read_xlsx("../data/WSSV_SHERLOCKv2/raw/2022-04-27 SAT SHERLOCKv2 Specificity2_Sample Setup_QuantStudio 12K Flex_export.xlsx", skip= 33, col_names = T)
 
 
-meta_data3 <- read_xlsx("../../data/2022-04-27/2022-04-27 SAT SHERLOCKv2 Specificity2_Sample Setup_QuantStudio 12K Flex_export.xlsx", skip= 33, col_names = T)
-
-
-
-
-
-data3 <- read_xlsx("../../data/2022-04-27/2022-04-27 SAT SHERLOCKv2 Specificity2_Multicomponent Data_QuantStudio 12K Flex_export.xlsx", skip= 33, col_names = T)
-
-#melt_data <- read_xlsx("../../data/2021-12-20/2021-12-20 melt2_MeltCurve Data_QuantStudio 12K Flex_export.xlsx", skip = 29, col_names = T)
+data3 <- read_xlsx("../data/WSSV_SHERLOCKv2/raw/2022-04-27 SAT SHERLOCKv2 Specificity2_Multicomponent Data_QuantStudio 12K Flex_export.xlsx", skip= 33, col_names = T)
 
 
 ```
@@ -178,10 +140,6 @@ data3_l <- data3_l[!is.na(data3_l$RFUs),]
 
 #merge with meta data
 data3_l <- merge(meta_data3[,2:3], data3_l, by = "Well Position")
-
-#melt_data_l <- merge(meta_data[,2:3], melt_data, by = "Well Position")
-
-
 
 
 ```
@@ -300,13 +258,11 @@ data3_l$rel_RFUs <- as.numeric(data3_l$RFUs) - as.numeric(data3_l$t0_RFUs)
 read in TSV specificity data
 
 ```{r}
-#First I opened the raw .xml data in excel and then saved it as an xlsx file. Ideally I would read the xml data into R directly, but I didn't want to waste time doing that. 
+
+data4 <- read.table("../data/TSV_SHERLOCKv2/raw/2022-04-27_TSV_false positive-2_Multicomponent Data_QuantStudio 12K Flex_export.txt", skip= 37,sep = "\t", header = T,check.names = F)
 
 
-data4 <- read.table("../2022-11-10_SHERLOCK_CasVLAMP/2022-04-27_TSV_false positive-2_Multicomponent Data_QuantStudio 12K Flex_export.txt", skip= 37,sep = "\t", header = T,check.names = F)
-
-
-meta_data4 <- read.table("../2022-11-10_SHERLOCK_CasVLAMP/2022-04-27_TSV_false positive-2_Sample Setup_QuantStudio 12K Flex_export.txt", skip= 37, header = T, sep = "\t", check.names = F)
+meta_data4 <- read.table("../data/TSV_SHERLOCKv2/raw/2022-04-27_TSV_false positive-2_Sample Setup_QuantStudio 12K Flex_export.txt", skip= 37, header = T, sep = "\t", check.names = F)
 
 
 
@@ -326,10 +282,6 @@ data4_l$`Well Position` <-gsub(" ", "", data4_l$`Well Position`)
 
 #merge with meta data
 data4_l <- merge(meta_data4[,2:3], data4_l, by = "Well Position")
-
-#melt_data_l <- merge(meta_data[,2:3], melt_data, by = "Well Position")
-
-
 
 
 ```
@@ -436,13 +388,11 @@ data4_l$rel_RFUs <- as.numeric(data4_l$RFUs) - as.numeric(data4_l$t0_RFUs)
 read in TSV standard data
 
 ```{r}
-#First I opened the raw .xml data in excel and then saved it as an xlsx file. Ideally I would read the xml data into R directly, but I didn't want to waste time doing that. 
+
+data5 <- read.table("../data/TSV_SHERLOCKv2/raw/2022-04-01_TSV_validation_Multicomponent Data_QuantStudio 12K Flex_export.txt", skip= 37,sep = "\t", header = T,check.names = F)
 
 
-data5 <- read.table("../2022-11-10_SHERLOCK_CasVLAMP/2022-04-01_TSV_validation_Multicomponent Data_QuantStudio 12K Flex_export.txt", skip= 37,sep = "\t", header = T,check.names = F)
-
-
-meta_data5 <- read.table("../2022-11-10_SHERLOCK_CasVLAMP/2022-04-01_TSV_validation_Sample Setup_QuantStudio 12K Flex_export.txt", skip= 37, header = T, sep = "\t", check.names = F)
+meta_data5 <- read.table("../data/TSV_SHERLOCKv2/raw/2022-04-01_TSV_validation_Sample Setup_QuantStudio 12K Flex_export.txt", skip= 37, header = T, sep = "\t", check.names = F)
 
 
 
@@ -462,10 +412,6 @@ data5_l$`Well Position` <-gsub(" ", "", data5_l$`Well Position`)
 
 #merge with meta data
 data5_l <- merge(meta_data5[,2:3], data5_l, by = "Well Position")
-
-#melt_data_l <- merge(meta_data[,2:3], melt_data, by = "Well Position")
-
-
 
 
 ```
@@ -588,14 +534,11 @@ data_l <- rbind(data5_l%>% dplyr::select(Well, dye, minutes, template, rel_RFUs,
 ```
 
 ```{r}
-jpeg("WSSV_OnePot_relRFU_facets_dye.jpg",width = 20, height =6, units = "in", res = 300 )
+jpeg("../Supplemental_Material/Supp_figs/FigS4b_WSSV_OnePot_relRFU_facets_dye.jpg",width = 20, height =6, units = "in", res = 300 )
 data_l %>% filter(target == "WSSV") %>% filter(template != 0) %>% filter(template != 1e+08) %>% filter(template != 1e+07) %>% mutate(template = gsub("water","NTC", template)) %>% mutate(template = gsub("Water","NTC", template))  %>%ggplot(aes(x = minutes, y = rel_RFUs, group =Well, color = dye)) + geom_point() + geom_line(size = 0.5) + theme_bw() + labs(y = "relative RFUs")  + scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) + facet_grid(dye~template, scales = "free_y") +xlim(0,60) + scale_color_manual(values = c("springgreen3", "purple3")) + geom_hline(yintercept = 1e+06,linetype = 2, color = "blue") + geom_vline(xintercept = 30, linetype = 3)+theme(legend.position = "none")
 dev.off()
 
-jpeg("TSV_OnePot_relRFU_facets_dye.jpg",width = 20, height =6, units = "in", res = 300 )
+jpeg("../Supplemental_Material/Supp_figs/FigS4a_TSV_OnePot_relRFU_facets_dye.jpg",width = 20, height =6, units = "in", res = 300 )
 data_l %>% filter(target == "TSV") %>% mutate(template = gsub("Water","NTC", template)) %>% filter(template != "0.00E+00") %>% filter(template != "1.00E+00") %>%ggplot(aes(x = minutes, y = rel_RFUs, group =Well, color = dye)) + geom_point() + geom_line(size = 0.5) + theme_bw() + labs(y = "relative RFUs")  + scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) + facet_grid(dye~template, scales = "free_y") +xlim(0,60) + scale_color_manual(values = c("springgreen3", "purple3")) + geom_vline(xintercept = 30, linetype = 3) + geom_hline(yintercept = 1.5e+06,linetype = 2, color = "blue") +theme(legend.position = "none")
 dev.off()
 ```
-
-
-dev.of()
