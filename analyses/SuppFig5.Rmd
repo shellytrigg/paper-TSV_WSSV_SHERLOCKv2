@@ -1,0 +1,601 @@
+---
+title: "SuppFig5"
+output: html_document
+date: '2022-11-10'
+---
+
+
+
+
+
+load libraries
+```{r}
+library(readxl)
+library(tidyr)
+library(dplyr)
+library(viridis)
+library(ggplot2)
+library(ggpubr)
+library(plotrix)
+
+
+```
+
+
+read in data
+
+```{r}
+#First I opened the raw .xml data in excel and then saved it as an xlsx file. Ideally I would read the xml data into R directly, but I didn't want to waste time doing that. 
+
+
+meta_data <- read_xlsx("../../data/2022-02-10/2022-02-10 SAT SHERLOCKv2 STD curve_Sample Setup_QuantStudio 12K Flex_export.xlsx", skip= 33, col_names = T)
+
+data2 <- read_xlsx("../../data/2022-02-10/2022-02-10 SAT SHERLOCKv2 STD curve_Multicomponent Data_QuantStudio 12K Flex_export.xlsx", skip= 33, col_names = T)
+
+
+
+```
+
+
+
+combine data sets
+```{r}
+data2$ROX <- NULL
+
+data2_l <- pivot_longer(data2, names_to= "dye", values_to = "RFUs", 4:5)
+
+data2_l <- data2_l[!is.na(data2_l$RFUs),]
+
+
+#merge with meta data
+data2_l <- merge(meta_data[,2:3], data2_l, by = "Well Position")
+
+#melt_data_l <- merge(meta_data[,2:3], melt_data, by = "Well Position")
+
+
+
+
+```
+
+
+add minutes column
+```{r}
+
+data2_l$minutes <- data2_l$Cycle *2
+
+```
+
+add replicates column
+```{r}
+
+for(i in 1:nrow(data2_l)){
+  if(grepl("A",data2_l$`Well Position`[i])){
+    data2_l$Rep[i] <- 1
+  }
+  if(grepl("B",data2_l$`Well Position`[i])){
+    data2_l$Rep[i] <- 2
+  }
+  if(grepl("C",data2_l$`Well Position`[i])){
+    data2_l$Rep[i] <- 3
+  }
+  if(grepl("D",data2_l$`Well Position`[i])){
+    data2_l$Rep[i] <- 4
+  }
+  if(grepl("E",data2_l$`Well Position`[i])){
+    data2_l$Rep[i] <- 5
+  }
+}
+
+# for(i in 1:nrow(melt_data_l)){
+#   if(grepl("1|4|7|10",melt_data_l$`Well Position`[i])){
+#     melt_data_l$Rep[i] <- 1
+#   }
+#   if(grepl("2|5|8|11",melt_data_l$`Well Position`[i])){
+#     melt_data_l$Rep[i] <- 2
+#   }
+#   if(grepl("3|6|9|12",melt_data_l$`Well Position`[i])){
+#     melt_data_l$Rep[i] <- 3
+#   }
+# }
+
+
+
+```
+
+create columns for crRNA, template, and condition
+```{r}
+data2_l$template <- gsub("_.*", "", data2_l$`Sample Name`)
+#data2_l$template <- gsub("_[^_]*$|^[^_]*_","", data2_l$`Sample Name`,perl=T)
+data2_l$template <- gsub("1e8",format(100000000,scientific = T), data2_l$template)
+data2_l$template <- gsub("1e7",format(10000000,scientific = T), data2_l$template)
+data2_l$template <- gsub("1e6",format(1000000,scientific = T), data2_l$template)
+data2_l$template <- gsub("1e5",format(100000,scientific = T), data2_l$template)
+data2_l$template <- gsub("1e4",format(10000,scientific = T), data2_l$template)
+data2_l$template <- gsub("1e3",format(1000,scientific = T), data2_l$template)
+data2_l$template <- gsub("1e2",format(100,scientific = T), data2_l$template)
+data2_l$template <- gsub("1e1",format(10,scientific = T), data2_l$template)
+
+data2_l$dye <- ifelse(data2_l$dye == "VIC","VIC (SYTO-82, LAMP)","FAM (Cas cleavage)")
+
+
+# melt_data_l$template <- gsub(".*_", "", melt_data_l$`Sample Name`)
+# melt_data_l$primer <- gsub("_.*", "", melt_data_l$`Sample Name`)
+# #melt_data_l$template <- gsub("_[^_]*$|^[^_]*_","", melt_data_l$`Sample Name`,perl=T)
+# 
+# melt_data_l$template <- gsub("1e4",format(10000,scientific = T), melt_data_l$template)
+# melt_data_l$template <- gsub("1e3",format(1000,scientific = T), melt_data_l$template)
+# melt_data_l$template <- gsub("1e2",format(100,scientific = T), melt_data_l$template)
+
+
+
+
+
+```
+
+create columns for baseline subtracted fluorescence
+```{r}
+
+#save RFU data for time 0 only
+t0 <- data2_l %>% group_by(Well) %>% filter(minutes == 8)
+#rename RFU column to t0_RFUs
+colnames(t0)[6] <- "t0_RFUs"
+
+data2_l <- merge(data2_l, t0[,c("Well","dye", "t0_RFUs")], by = c("Well", "dye"))
+data2_l$rel_RFUs <- as.numeric(data2_l$RFUs) - as.numeric(data2_l$t0_RFUs)
+
+```  
+
+
+read in data
+
+```{r}
+#First I opened the raw .xml data in excel and then saved it as an xlsx file. Ideally I would read the xml data into R directly, but I didn't want to waste time doing that. 
+
+
+meta_data3 <- read_xlsx("../../data/2022-04-27/2022-04-27 SAT SHERLOCKv2 Specificity2_Sample Setup_QuantStudio 12K Flex_export.xlsx", skip= 33, col_names = T)
+
+
+
+
+
+data3 <- read_xlsx("../../data/2022-04-27/2022-04-27 SAT SHERLOCKv2 Specificity2_Multicomponent Data_QuantStudio 12K Flex_export.xlsx", skip= 33, col_names = T)
+
+#melt_data <- read_xlsx("../../data/2021-12-20/2021-12-20 melt2_MeltCurve Data_QuantStudio 12K Flex_export.xlsx", skip = 29, col_names = T)
+
+
+```
+
+
+
+combine data sets
+```{r}
+data3$ROX <- NULL
+
+data3_l <- pivot_longer(data3, names_to= "dye", values_to = "RFUs", 4:5)
+
+data3_l <- data3_l[!is.na(data3_l$RFUs),]
+
+
+#merge with meta data
+data3_l <- merge(meta_data3[,2:3], data3_l, by = "Well Position")
+
+#melt_data_l <- merge(meta_data[,2:3], melt_data, by = "Well Position")
+
+
+
+
+```
+
+
+add minutes column
+```{r}
+
+data3_l$minutes <- data3_l$Cycle *2
+
+```
+
+add replicates column
+```{r}
+
+for(i in 1:nrow(data3_l)){
+  if(grepl("^[A-H]1$|6",data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 1
+  }
+  if(grepl("^[A-H]2$|7",data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 2
+  }
+  if(grepl("3|8",data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 3
+  }
+    if(grepl("4|9",data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 4
+    }
+    if(grepl("5|10",data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 5
+    }
+}
+
+
+for(i in 1:nrow(data3_l)){
+    if(grepl("IMNV", data3_l$`Sample Name`[i]) && grepl("A", data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 1
+    }
+    if(grepl("IMNV", data3_l$`Sample Name`[i]) && grepl("B", data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 2
+    }
+    if(grepl("IMNV", data3_l$`Sample Name`[i]) && grepl("C", data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 3
+    }
+    if(grepl("IMNV", data3_l$`Sample Name`[i]) && grepl("D", data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 4
+    }
+    if(grepl("IMNV", data3_l$`Sample Name`[i]) && grepl("E", data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 5
+    }
+}
+
+for(i in 1:nrow(data3_l)){
+    if(grepl("Water", data3_l$`Sample Name`[i]) && grepl("F11", data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 1
+    }
+    if(grepl("Water", data3_l$`Sample Name`[i]) && grepl("F12", data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 2
+    }
+    if(grepl("Water", data3_l$`Sample Name`[i]) && grepl("G11", data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 3
+    }
+    if(grepl("Water", data3_l$`Sample Name`[i]) && grepl("G12", data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 4
+    }
+    if(grepl("Water", data3_l$`Sample Name`[i]) && grepl("H11", data3_l$`Well Position`[i])){
+    data3_l$Rep[i] <- 5
+    }
+}
+
+
+
+
+
+```
+
+create columns for crRNA, template, and condition
+```{r}
+data3_l$template <- gsub("_.*", "", data3_l$`Sample Name`)
+#data3_l$template <- gsub("_[^_]*$|^[^_]*_","", data3_l$`Sample Name`,perl=T)
+data3_l$template <- gsub("_.*", "", data3_l$`Sample Name`)
+data3_l$template <- ifelse(grepl("[A-z]", data3_l$template),gsub("[0-9]|[1-9][0-9]","", data3_l$template), data3_l$template)
+
+data3_l$template <- gsub("1e11",format(100000000000,scientific = T), data3_l$template)
+data3_l$template <- gsub("1e10",format(10000000000,scientific = T), data3_l$template)
+data3_l$template <- gsub("1e9",format(1000000000,scientific = T), data3_l$template)
+data3_l$template <- gsub("1e8",format(100000000,scientific = T), data3_l$template)
+data3_l$template <- gsub("1e7",format(10000000,scientific = T), data3_l$template)
+data3_l$template <- gsub("1e6",format(1000000,scientific = T), data3_l$template)
+data3_l$template <- gsub("1e5",format(100000,scientific = T), data3_l$template)
+data3_l$template <- gsub("1e4",format(10000,scientific = T), data3_l$template)
+data3_l$template <- gsub("1e3",format(1000,scientific = T), data3_l$template)
+data3_l$template <- gsub("1e2",format(100,scientific = T), data3_l$template)
+data3_l$template <- gsub("1e1",format(10,scientific = T), data3_l$template)
+
+
+data3_l$dye <- ifelse(data3_l$dye == "VIC","VIC (SYTO-82, LAMP)","FAM (Cas cleavage)")
+
+
+```
+
+create columns for baseline subtracted fluorescence
+```{r}
+
+#save RFU data for time 0 only
+t0 <- data3_l %>% group_by(Well) %>% filter(minutes == 2)
+#rename RFU column to t0_RFUs
+colnames(t0)[6] <- "t0_RFUs"
+
+data3_l <- unique(merge(data3_l, t0[,c("Well","dye", "t0_RFUs")], by = c("Well", "dye")))
+data3_l$rel_RFUs <- as.numeric(data3_l$RFUs) - as.numeric(data3_l$t0_RFUs)
+
+```  
+
+
+read in TSV specificity data
+
+```{r}
+#First I opened the raw .xml data in excel and then saved it as an xlsx file. Ideally I would read the xml data into R directly, but I didn't want to waste time doing that. 
+
+
+data4 <- read.table("../2022-11-10_SHERLOCK_CasVLAMP/2022-04-27_TSV_false positive-2_Multicomponent Data_QuantStudio 12K Flex_export.txt", skip= 37,sep = "\t", header = T,check.names = F)
+
+
+meta_data4 <- read.table("../2022-11-10_SHERLOCK_CasVLAMP/2022-04-27_TSV_false positive-2_Sample Setup_QuantStudio 12K Flex_export.txt", skip= 37, header = T, sep = "\t", check.names = F)
+
+
+
+```
+
+
+
+combine data sets
+```{r}
+data4$ROX <- NULL
+
+data4_l <- pivot_longer(data4, names_to= "dye", values_to = "RFUs", 4:5)
+
+data4_l <- data4_l[!is.na(data4_l$RFUs),]
+
+data4_l$`Well Position` <-gsub(" ", "", data4_l$`Well Position`)
+
+#merge with meta data
+data4_l <- merge(meta_data4[,2:3], data4_l, by = "Well Position")
+
+#melt_data_l <- merge(meta_data[,2:3], melt_data, by = "Well Position")
+
+
+
+
+```
+
+
+add minutes column
+```{r}
+
+data4_l$minutes <- data4_l$Cycle *2
+
+```
+
+add replicates column
+```{r}
+
+for(i in 1:nrow(data4_l)){
+  if(grepl("^[A-H]1$|6",data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 1
+  }
+  if(grepl("^[A-H]2$|7",data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 2
+  }
+  if(grepl("3|8",data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 3
+  }
+    if(grepl("4|9",data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 4
+    }
+    if(grepl("5|10",data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 5
+    }
+}
+
+
+for(i in 1:nrow(data4_l)){
+    if(grepl("IMNV", data4_l$`Sample Name`[i]) && grepl("A", data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 1
+    }
+    if(grepl("IMNV", data4_l$`Sample Name`[i]) && grepl("B", data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 2
+    }
+    if(grepl("IMNV", data4_l$`Sample Name`[i]) && grepl("C", data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 3
+    }
+    if(grepl("IMNV", data4_l$`Sample Name`[i]) && grepl("D", data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 4
+    }
+    if(grepl("IMNV", data4_l$`Sample Name`[i]) && grepl("E", data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 5
+    }
+}
+
+for(i in 1:nrow(data4_l)){
+    if(grepl("Water", data4_l$`Sample Name`[i]) && grepl("F11", data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 1
+    }
+    if(grepl("Water", data4_l$`Sample Name`[i]) && grepl("F12", data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 2
+    }
+    if(grepl("Water", data4_l$`Sample Name`[i]) && grepl("G11", data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 3
+    }
+    if(grepl("Water", data4_l$`Sample Name`[i]) && grepl("G12", data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 4
+    }
+    if(grepl("Water", data4_l$`Sample Name`[i]) && grepl("H11", data4_l$`Well Position`[i])){
+    data4_l$Rep[i] <- 5
+    }
+}
+
+
+
+
+
+```
+
+create columns for crRNA, template, and condition
+```{r}
+data4_l$template <- gsub("-.*", "", data4_l$`Sample Name`)
+
+data4_l$dye <- ifelse(data4_l$dye == "VIC","VIC (SYTO-82, LAMP)","FAM (Cas cleavage)")
+
+
+```
+
+create columns for baseline subtracted fluorescence
+```{r}
+#convert RFUs to numeric
+data4_l$RFUs <- gsub(",","", data4_l$RFUs)
+
+
+#save RFU data for time 0 only
+t0 <- data4_l %>% group_by(Well) %>% filter(minutes == 2)
+#rename RFU column to t0_RFUs
+colnames(t0)[6] <- "t0_RFUs"
+
+data4_l <- unique(merge(data4_l, t0[,c("Well","dye", "t0_RFUs")], by = c("Well", "dye")))
+data4_l$rel_RFUs <- as.numeric(data4_l$RFUs) - as.numeric(data4_l$t0_RFUs)
+
+```  
+
+
+
+read in TSV standard data
+
+```{r}
+#First I opened the raw .xml data in excel and then saved it as an xlsx file. Ideally I would read the xml data into R directly, but I didn't want to waste time doing that. 
+
+
+data5 <- read.table("../2022-11-10_SHERLOCK_CasVLAMP/2022-04-01_TSV_validation_Multicomponent Data_QuantStudio 12K Flex_export.txt", skip= 37,sep = "\t", header = T,check.names = F)
+
+
+meta_data5 <- read.table("../2022-11-10_SHERLOCK_CasVLAMP/2022-04-01_TSV_validation_Sample Setup_QuantStudio 12K Flex_export.txt", skip= 37, header = T, sep = "\t", check.names = F)
+
+
+
+```
+
+
+
+combine data sets
+```{r}
+data5$ROX <- NULL
+
+data5_l <- pivot_longer(data5, names_to= "dye", values_to = "RFUs", 4:5)
+
+data5_l <- data5_l[!is.na(data5_l$RFUs),]
+
+data5_l$`Well Position` <-gsub(" ", "", data5_l$`Well Position`)
+
+#merge with meta data
+data5_l <- merge(meta_data5[,2:3], data5_l, by = "Well Position")
+
+#melt_data_l <- merge(meta_data[,2:3], melt_data, by = "Well Position")
+
+
+
+
+```
+
+
+add minutes column
+```{r}
+
+data5_l$minutes <- data5_l$Cycle *2
+
+```
+
+add replicates column
+```{r}
+
+for(i in 1:nrow(data5_l)){
+  if(grepl("^[A-H]1$|6",data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 1
+  }
+  if(grepl("^[A-H]2$|7",data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 2
+  }
+  if(grepl("3|8",data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 3
+  }
+    if(grepl("4|9",data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 4
+    }
+    if(grepl("5|10",data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 5
+    }
+}
+
+
+for(i in 1:nrow(data5_l)){
+    if(grepl("IMNV", data5_l$`Sample Name`[i]) && grepl("A", data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 1
+    }
+    if(grepl("IMNV", data5_l$`Sample Name`[i]) && grepl("B", data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 2
+    }
+    if(grepl("IMNV", data5_l$`Sample Name`[i]) && grepl("C", data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 3
+    }
+    if(grepl("IMNV", data5_l$`Sample Name`[i]) && grepl("D", data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 4
+    }
+    if(grepl("IMNV", data5_l$`Sample Name`[i]) && grepl("E", data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 5
+    }
+}
+
+for(i in 1:nrow(data5_l)){
+    if(grepl("Water", data5_l$`Sample Name`[i]) && grepl("F11", data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 1
+    }
+    if(grepl("Water", data5_l$`Sample Name`[i]) && grepl("F12", data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 2
+    }
+    if(grepl("Water", data5_l$`Sample Name`[i]) && grepl("G11", data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 3
+    }
+    if(grepl("Water", data5_l$`Sample Name`[i]) && grepl("G12", data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 4
+    }
+    if(grepl("Water", data5_l$`Sample Name`[i]) && grepl("H11", data5_l$`Well Position`[i])){
+    data5_l$Rep[i] <- 5
+    }
+}
+
+
+
+
+
+```
+
+create columns for crRNA, template, and condition
+```{r}
+#filter out 225
+data5_l <- data5_l %>% filter(!(grepl("Val", `Sample Name`)))
+
+data5_l$template <- data5_l$`Sample Name`
+
+data5_l$dye <- ifelse(data5_l$dye == "VIC","VIC (SYTO-82, LAMP)","FAM (Cas cleavage)")
+
+
+```
+
+create columns for baseline subtracted fluorescence
+```{r}
+#convert RFUs to numeric
+data5_l$RFUs <- gsub(",","", data5_l$RFUs)
+
+
+#save RFU data for time 0 only
+t0 <- data5_l %>% group_by(Well) %>% filter(minutes == 2)
+#rename RFU column to t0_RFUs
+colnames(t0)[6] <- "t0_RFUs"
+
+data5_l <- unique(merge(data5_l, t0[,c("Well","dye", "t0_RFUs")], by = c("Well", "dye")))
+data5_l$rel_RFUs <- as.numeric(data5_l$RFUs) - as.numeric(data5_l$t0_RFUs)
+
+data5_l <- data5_l %>% filter(!is.na(rel_RFUs))
+
+```  
+
+
+merge data together
+```{r}
+data5_l$target <- "TSV"
+data4_l$target <- "TSV"
+data3_l$target <- "WSSV"
+data2_l$target <- "WSSV"
+
+
+
+
+data_l <- rbind(data5_l%>% dplyr::select(Well, dye, minutes, template, rel_RFUs, target),data4_l%>% dplyr::select(Well, dye, minutes, template, rel_RFUs, target),data3_l%>% dplyr::select(Well, dye, minutes, template, rel_RFUs, target) %>% filter(grepl("[A-Z]", template)), data2_l%>% dplyr::select(Well, dye, minutes, template, rel_RFUs, target)) %>% filter(!is.na(rel_RFUs))
+
+```
+
+```{r}
+jpeg("WSSV_OnePot_relRFU_facets_dye.jpg",width = 20, height =6, units = "in", res = 300 )
+data_l %>% filter(target == "WSSV") %>% filter(template != 0) %>% filter(template != 1e+08) %>% filter(template != 1e+07) %>% mutate(template = gsub("water","NTC", template)) %>% mutate(template = gsub("Water","NTC", template))  %>%ggplot(aes(x = minutes, y = rel_RFUs, group =Well, color = dye)) + geom_point() + geom_line(size = 0.5) + theme_bw() + labs(y = "relative RFUs")  + scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) + facet_grid(dye~template, scales = "free_y") +xlim(0,60) + scale_color_manual(values = c("springgreen3", "purple3")) + geom_hline(yintercept = 1e+06,linetype = 2, color = "blue") + geom_vline(xintercept = 30, linetype = 3)+theme(legend.position = "none")
+dev.off()
+
+jpeg("TSV_OnePot_relRFU_facets_dye.jpg",width = 20, height =6, units = "in", res = 300 )
+data_l %>% filter(target == "TSV") %>% mutate(template = gsub("Water","NTC", template)) %>% filter(template != "0.00E+00") %>% filter(template != "1.00E+00") %>%ggplot(aes(x = minutes, y = rel_RFUs, group =Well, color = dye)) + geom_point() + geom_line(size = 0.5) + theme_bw() + labs(y = "relative RFUs")  + scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) + facet_grid(dye~template, scales = "free_y") +xlim(0,60) + scale_color_manual(values = c("springgreen3", "purple3")) + geom_vline(xintercept = 30, linetype = 3) + geom_hline(yintercept = 1.5e+06,linetype = 2, color = "blue") +theme(legend.position = "none")
+dev.off()
+```
+
+
+dev.of()

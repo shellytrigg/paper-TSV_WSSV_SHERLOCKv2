@@ -1,0 +1,176 @@
+---
+title: "Untitled"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+load libraries
+```{r}
+library(readxl)
+library(tidyr)
+library(dplyr)
+library(viridis)
+library(ggplot2)
+library(ggpubr)
+library(plotrix)
+library(mgcv)
+library(drc)
+library(scales)
+
+
+```
+
+
+
+
+Read in data
+```{r}
+
+#First I opened the .eds files in QuantStudio
+# I examined across all the experiments the cycle at which the earliest Cas signal starts coming up. I picked the cycle before that as the maximum cycle for defining the baseline. I selected 1-4 for all experiments. I made sure Rox was not included. I exported the results file in excel format. Then I read in each data set:
+
+data0830 <- read_xlsx("2022-08-30_TSV qPCR sample eval_Results_QuantStudio 12K Flex_export.xlsx", col_names = T,range = "A33:Y250")
+
+data0901 <- read_xlsx("2022-09_01_TSV qPCR sample eval-1_Results_QuantStudio 12K Flex_export.xlsx", col_names = T,range = "A36:Y250")
+
+data0912 <- read_xlsx("2022-09_12_TSV qPCR sample eval-3_Results_QuantStudio 12K Flex_export.xlsx", col_names = T,range = "A33:Y250")
+
+data0913 <- read_xlsx("2022-09_13_TSV qPCR sample eval-4_Results_QuantStudio 12K Flex_export.xlsx", col_names = T,range = "A33:Y250")
+
+
+```
+
+format data
+```{r}
+#add date colum
+data0830$date <- "08-30"
+data0901$date <- "09-01"
+data0912$date <- "09-12"
+data0913$date <- "09-13"
+
+
+
+# replicate info
+QS_data <- rbind(data0830, data0901, data0912, data0913) %>% dplyr::select(date,Well, `Well Position`, `Sample Name`, Reporter, CT) %>% filter(Reporter == "FAM") %>% dplyr::select(-Reporter)
+
+#add replicate column
+for(i in 1:nrow(QS_data)){
+    if(grepl("1|4",QS_data$`Well Position`[i])){
+      QS_data$Replicate[i] <- 1
+    }
+    if(grepl("2|5",QS_data$`Well Position`[i])){
+      QS_data$Replicate[i] <- 2
+    }
+    if(grepl("3|6",QS_data$`Well Position`[i])){
+      QS_data$Replicate[i] <- 3
+    }
+    if(grepl("4|9",QS_data$`Well Position`[i])){
+      QS_data$Replicate[i] <- 4
+    }
+    if(grepl("5|10",QS_data$`Well Position`[i])){
+      QS_data$Replicate[i] <- 5
+    }
+}
+
+#add sample type column
+QS_data$sample_type <- ifelse(grepl("Val", QS_data$`Sample Name`),"UNK", "STD")
+
+#create column for number of replicates
+QS_data <- QS_data %>% group_by(date, `Sample Name`) %>% mutate(num_reps = n())
+
+#create template column
+QS_data$template <- gsub(".*-","",QS_data$`Sample Name`)
+ 
+```
+
+
+remove outliers
+```{r}
+QS_STD_data_stats <- QS_data %>% filter(sample_type == "STD") %>% filter(CT !="Undetermined") %>% mutate(CT = as.numeric(CT)) %>% group_by(date, template,num_reps)%>% summarise(FivNum = list(fivenum(CT)),mean = mean(CT), sd = sd(CT), count = sum(!is.na(CT)), mad_CT = mad(CT)) %>% mutate(FivNum = lapply(FivNum,setNames,nm = c("min", "FirstQ", "median","ThirdQ", "max"))) %>% unnest_wider(FivNum) %>% mutate(lwr_sd_CT = mean - sd,upr_sd_CT = mean + sd,lwr_mad_CT = median-(mad_CT * 2.5), upr_mad_CT = median+(mad_CT * 2.5), upr_qt_CT = ThirdQ + (1.5 * (ThirdQ - FirstQ)),lwr_qt_CT = FirstQ - (1.5 * (ThirdQ - FirstQ))) %>% filter(count >=num_reps/2) 
+  
+  
+QS_STD_data <- merge(QS_data %>% filter(sample_type == "STD") %>% filter(CT !="Undetermined") %>%  mutate(CT = as.numeric(CT)) ,QS_STD_data_stats, by = c("date", "template","num_reps"))
+
+#create columns for each method denoting whether or not to keep the data point
+
+QS_STD_data$std_method <- ifelse(QS_STD_data$CT >= QS_STD_data$mean - QS_STD_data$sd & QS_STD_data$CT <= QS_STD_data$mean + QS_STD_data$sd,"keep","remove")
+QS_STD_data$std2_method <- ifelse(QS_STD_data$CT >= QS_STD_data$mean - QS_STD_data$sd*2 & QS_STD_data$CT <= QS_STD_data$mean + QS_STD_data$sd*2,"keep","remove")
+
+QS_STD_data$mad2_method <- ifelse(QS_STD_data$CT >= QS_STD_data$median-(QS_STD_data$mad_CT * 2) & QS_STD_data$CT <= QS_STD_data$median+(QS_STD_data$mad_CT * 2),"keep","remove")
+QS_STD_data$mad2.5_method <- ifelse(QS_STD_data$CT >= QS_STD_data$median-(QS_STD_data$mad_CT * 2.5) & QS_STD_data$CT <= QS_STD_data$median+(QS_STD_data$mad_CT * 2.5),"keep","remove")
+QS_STD_data$mad3_method <- ifelse(QS_STD_data$CT >= QS_STD_data$median-(QS_STD_data$mad_CT * 3) & QS_STD_data$CT <= QS_STD_data$median+(QS_STD_data$mad_CT * 3),"keep","remove")
+
+
+QS_STD_data$qt_method <- ifelse(QS_STD_data$CT >= QS_STD_data$lwr_qt_CT & QS_STD_data$CT <= QS_STD_data$upr_qt_CT,"keep","remove")
+
+QS_STD_data$medDist1_method <- ifelse(QS_STD_data$CT >= QS_STD_data$median -1 & QS_STD_data$CT <= QS_STD_data$median +1, "keep", "remove")
+QS_STD_data$medDist1.5_method <- ifelse(QS_STD_data$CT >= QS_STD_data$median -1.5 & QS_STD_data$CT <= QS_STD_data$median +1.5, "keep", "remove")
+QS_STD_data$medDist2_method <- ifelse(QS_STD_data$CT >= QS_STD_data$median -2 & QS_STD_data$CT <= QS_STD_data$median +2, "keep", "remove")
+
+
+QS_STD_data %>% pivot_longer(cols = grep("_method",colnames(QS_STD_data)), names_to = "method", values_to = "action") %>% filter(action == "keep") %>% group_by( date, method,template,num_reps) %>% mutate(count2 = n()) %>% filter(count2 >=num_reps/2) %>% ungroup() %>% ggplot(aes(x = as.numeric(template), y = CT, color = method))+ geom_point(position = position_dodge(width = 0.5)) + geom_smooth(method = "lm", se = F)+ stat_regline_equation(label.x = c(rep(7, 9)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 2)+ theme_bw() + labs(color = "method", y = "Ct", x = "copies") +  ggtitle("standards from different experiments") + facet_wrap(~date, scale = "free_y")+ scale_x_continuous(breaks =  c(seq(0,13,1)), limits = c(0,13))
+
+```
+
+08/30 10^7 is the same as 10^6; remove this data point.
+```{r}
+
+QS_STD_data %>% pivot_longer(cols = grep("_method",colnames(QS_STD_data)), names_to = "method", values_to = "action") %>% filter(action == "keep") %>% group_by( date, method,template,num_reps) %>% mutate(count2 = n()) %>% filter(count2 >=num_reps/2) %>% ungroup() %>% filter(method == "medDist1_method")%>% filter(date != "08-30" | template != 7) %>%ggplot(aes(x = as.numeric(template), y = CT, color = date))+ geom_point(position = position_dodge(width = 0.5)) + geom_smooth(method = "lm", se = F)+ stat_regline_equation(label.x = c(rep(5, 9)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x)+ theme_bw() + labs(color = "method", y = "Ct", x = "copies") +  ggtitle("standards from different experiments") + scale_x_continuous(breaks =  c(seq(0,8,1)), limits = c(0,8))
+
+```
+
+med distance 1 is good as the threshold seems to be the best model so I'm going to use that one 
+```{r}
+slopes <- QS_STD_data %>% pivot_longer(cols = grep("_method",colnames(QS_STD_data)), names_to = "method", values_to = "action") %>% filter(action == "keep") %>% group_by( date, method,template,num_reps) %>% mutate(count2 = n()) %>% filter(count2 >=num_reps/2) %>% ungroup() %>% filter(method == "medDist1_method")%>% filter(date != "08-30" | template != 7)  %>% group_by(date) %>%  do(model = broom::tidy(lm(CT ~ as.numeric(template), data =.))) %>% unnest_wider(model) %>% dplyr::select(-term) %>% pivot_longer(2:5, names_to = "param", values_to = "vals") %>% unnest_wider(vals) %>% rename(intercept =3, slope=4) %>% filter(param == "estimate") %>% dplyr::select(-param)
+
+#09-01 is a really bad curve. Use the 9/13 lm coefficients for this one
+
+slopes$intercept[2] <- slopes$intercept[4]
+slopes$slope[2] <- slopes$slope[4]
+```
+
+
+filter all data based on median threshold
+```{r}
+QS_data_filtered <- merge(QS_data %>%filter(CT !="Undetermined")%>%  group_by(date,`Sample Name`,template,num_reps)%>% summarise(FivNum = list(fivenum(as.numeric(CT))), count = sum(!is.na(CT))) %>% mutate(FivNum = lapply(FivNum,setNames,nm = c("min", "FirstQ", "median","ThirdQ", "max"))) %>% unnest_wider(FivNum) %>% filter(count >= num_reps/2), QS_data %>% filter(CT !="Undetermined") %>% mutate(CT = as.numeric(CT)) %>% filter(template > 0) , by = c("date", "Sample Name","template", "num_reps")) %>%   mutate(medDist1_method = ifelse(CT >= median -1 & CT <= median +1, "keep", "remove")) %>% filter(medDist1_method == "keep") %>% group_by(date,`Sample Name`,template,num_reps) %>% mutate(count2 = n()) %>% filter(count2 >=num_reps/2) %>% filter(!grepl("Water", template))
+
+
+#merge filtered data with slope data 
+
+QS_data_filtered <- merge(QS_data_filtered,slopes, by = c("date"))
+
+
+#predict copies from CT values
+QS_data_filtered <- QS_data_filtered %>% mutate(log10cp = (CT - intercept)/slope)
+
+
+QS_data_filtered_summ <- QS_data_filtered%>% group_by(date,`Sample Name`) %>% summarise(mean_CT = mean(CT), sd_CT = sd(CT), mean_log10cp = mean(log10cp), sd_log10cp = sd(log10cp), mean_copies = mean(10^log10cp),sd_copies = sd(10^log10cp))
+```
+
+plot CT vs copies
+```{r}
+QS_data_filtered_summ %>% mutate(sample_type = ifelse(grepl("p", `Sample Name`), "standard", "unknown"))%>% filter(grepl("p", `Sample Name`)) %>% filter(date != "08-30" | template != 7) %>%ggplot(aes(x = as.numeric(template), y = CT, color = date))+ geom_point(position = position_dodge(width = 0.5)) + geom_smooth(method = "lm", se = F)+ stat_regline_equation(label.x = c(rep(7, 9)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 2)+ theme_bw() + labs(color = "method", y = "Ct", x = "copies") +  ggtitle("standards from different experiments") + facet_wrap(~date, scale = "free_y")+ scale_x_continuous(breaks =  c(seq(0,13,1)), limits = c(0,13))
+
+
+```
+
+
+read in dilution data
+```{r}
+
+qPCR_dil_data <- read_xlsx("../TSV_dil_data.xlsx", sheet = "SRM_qPCR")
+
+#merge dilution data with copies data
+QS_data_filtered_summ_val <- merge(QS_data_filtered_summ, qPCR_dil_data, by = "Sample Name")
+
+
+#calculate copies/rxn
+QS_data_filtered_summ_val$copies_per_uL_OG_sample <- QS_data_filtered_summ_val$mean_copies/ as.numeric(QS_data_filtered_summ_val$`uL of original sample/rxn`)
+
+QS_data_filtered_summ_val$sd_copies_per_uL_OG_sample <- QS_data_filtered_summ_val$sd_copies/ as.numeric(QS_data_filtered_summ_val$`uL of original sample/rxn`)
+
+write.csv(QS_data_filtered_summ_val, "TSV_qPCR_SRM.csv", quote = F, row.names = F)
+
+```
