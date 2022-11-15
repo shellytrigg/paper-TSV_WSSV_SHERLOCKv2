@@ -1,5 +1,5 @@
 ---
-title: "2022-08-30_SHERLOCKv2_fluor_analyze_all"
+title: "SHERLOCKv2_fluor_analyze_all"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -19,7 +19,7 @@ library(gtools)
 
 ### Preprocessing ###
 - Open the .eds files in QuantStudio 12K Flex Software v1.4 (https://www.thermofisher.com/order/catalog/product/4472048)
-- Make sure Rox was not included as a passive refernece. Under Setup -> Define -> Passive Reference (should say "None"). 
+- Make sure Rox was not included as a passive reference. Under Setup -> Define -> Passive Reference (should say "None"). 
 - examine across all the experiments to identify the cycle at which the earliest Cas signal starts coming up. The cycle before that cycle is the end cycle for defining the baseline. 
 - For TSV, the start cycle is 1 and the end cycle is 4 for all experiments. 
 - For WSSV, the start cycle is 1 and the end cycle is 2 for all experiments. 
