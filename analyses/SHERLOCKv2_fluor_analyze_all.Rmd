@@ -220,7 +220,8 @@ QS_data$template <- gsub("1e0",format(1,scientific = T), QS_data$template)
 
 
 
-
+QS_data$CT <- gsub("Undetermined",NA, QS_data$CT)
+QS_data$CT <- as.numeric(QS_data$CT)
  
 ```
 
@@ -230,12 +231,12 @@ plot standards excluding specificity experiment dates (that don't have standard 
 
 #### TSV ####
 jpeg("../intermediate_files/TSV_stdcrvs_before_outlier_removal.jpg", width = 12, height = 9, units = "in", res = 300)
-QS_data %>% filter(!grepl("04-21|04-27", date)) %>% filter(virus != "TSV" | date != "04-20") %>% filter(sample_type == "STD" & virus == "TSV") %>% filter(CT !="Undetermined") %>% mutate(template = log10(as.numeric(template))) %>% mutate(CT = as.numeric(CT)) %>% filter(template > 0) %>%ggplot(aes(x = template, y = CT))+ geom_point(aes(shape = virus),position = position_dodge(width = 0.5)) + theme_bw() + labs(color = "date", y = "Ct", x = "copies") +  ggtitle("standards from TSV different experiments") + facet_wrap(~date, scale = "free") + geom_smooth(size = 0.5, linetype = 3,method = "lm", se = F)+ stat_regline_equation(label.x = 3, label.y.npc = "top" ,aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 3)
+QS_data %>% filter(!grepl("04-21|04-27", date)) %>% filter(virus != "TSV" | date != "04-20") %>% filter(sample_type == "STD" & virus == "TSV") %>% filter(!is.na(CT) ) %>% mutate(template = log10(as.numeric(template))) %>% filter(template > 0) %>%ggplot(aes(x = template, y = CT))+ geom_point(aes(shape = virus),position = position_dodge(width = 0.5)) + theme_bw() + labs(color = "date", y = "Ct", x = "copies") +  ggtitle("standards from TSV different experiments") + facet_wrap(~date, scale = "free") + geom_smooth(size = 0.5, linetype = 3,method = "lm", se = F)+ stat_regline_equation(label.x = 3, label.y.npc = "top" ,aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 3)
 dev.off()
 
 #### WSSV ####
 jpeg("../intermediate_files/WSSV_stdcrvs_before_outlier_removal.jpg", width = 10, height = 6, units = "in", res = 300)
-QS_data %>% filter(!grepl("04-21|04-27", date)) %>% filter(virus != "TSV" | date != "04-20") %>% filter(sample_type == "STD" & virus == "WSSV") %>% filter(CT !="Undetermined") %>% mutate(template = log10(as.numeric(template))) %>% mutate(CT = as.numeric(CT)) %>% filter(template > 0) %>%ggplot(aes(x = template, y = CT))+ geom_point(aes(shape = virus),position = position_dodge(width = 0.5)) + theme_bw() + labs(color = "date", y = "Ct", x = "copies") +  ggtitle("standards from different WSSV experiments") + facet_wrap(~date, scale = "free") + geom_smooth(size = 0.5, linetype = 3,method = "lm", se = F)+ stat_regline_equation(label.x = 5,aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 3)
+QS_data %>% filter(!grepl("03-24|04-21|04-27", date)) %>% filter(virus != "TSV" | date != "04-20") %>% filter(sample_type == "STD" & virus == "WSSV") %>% filter(!is.na(CT)) %>% mutate(template = log10(as.numeric(template))) %>% filter(template > 0) %>%ggplot(aes(x = template, y = CT))+ geom_point(aes(shape = virus),position = position_dodge(width = 0.5)) + theme_bw() + labs(color = "date", y = "Ct", x = "copies") +  ggtitle("standards from different WSSV experiments") + facet_wrap(~date, scale = "free") + geom_smooth(size = 0.5, linetype = 3,method = "lm", se = F)+ stat_regline_equation(label.x = 5,aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 3)
 dev.off()
 
 ```
@@ -251,12 +252,13 @@ determining method for identifying outliers
 #calculate mean, sd
 #count the number of replicates that have a CT value
 #mad() calculates the median absolute dispersion
+#exclude false positives filter(template > 0)
 #calculate the thresholds based on quartile method (1.5 * the difference between 1st and 3rd quartile)
 #filter for samples that have data for more than half of their replicates
-QS_STD_data_stats <- QS_data %>% filter(!grepl("04-21|04-27", date)) %>% filter(virus != "TSV" | date != "04-20") %>% filter(sample_type == "STD") %>% filter(CT !="Undetermined") %>% mutate(CT = as.numeric(CT)) %>% filter(template > 0) %>% group_by(date, virus,template,num_reps)%>% summarise(FivNum = list(fivenum(CT)),mean = mean(CT), sd = sd(CT), count = sum(!is.na(CT)), mad_CT = mad(CT)) %>% mutate(FivNum = lapply(FivNum,setNames,nm = c("min", "FirstQ", "median","ThirdQ", "max"))) %>% unnest_wider(FivNum) %>% filter(count >=num_reps/2) 
-  
+QS_STD_data_stats <- QS_data %>% filter(!grepl("03-24|04-21|04-27", date)) %>% filter(virus != "TSV" | date != "04-20") %>% filter(sample_type == "STD")%>% group_by(date, virus,`Sample Name`, template,num_reps)%>% summarise(FivNum = list(fivenum(CT)),mean = mean(CT, na.rm =T), sd = sd(CT, na.rm = T), count = sum(!is.na(CT)), mad_CT = mad(CT,na.rm = T)) %>% mutate(FivNum = lapply(FivNum,setNames,nm = c("min", "FirstQ", "median","ThirdQ", "max"))) %>% unnest_wider(FivNum) %>% mutate(at_least_3CTvals = ifelse(count >=num_reps/2, "keep","remove")) %>% filter(at_least_3CTvals == "keep") %>% filter(template > 0) 
+
 #combine stats for standards calculated above with the data for each replicate of each standard sample (filtered the same as above)
-QS_STD_data <- merge(QS_data %>% filter(!grepl("04-21|04-27", date)) %>% filter(virus != "TSV" | date != "04-20") %>% filter(sample_type == "STD") %>% filter(CT !="Undetermined") %>%  mutate(CT = as.numeric(CT)) %>% filter(template > 0) ,QS_STD_data_stats, by = c("date", "template","virus","num_reps"))
+QS_STD_data <- merge(QS_data %>% filter(!grepl("03-24|04-21|04-27", date)) %>% filter(virus != "TSV" | date != "04-20") %>% filter(sample_type == "STD")%>% group_by(date, virus,`Sample Name`, template,num_reps) ,QS_STD_data_stats, by = c("date", "Sample Name","template","virus","num_reps"))
 
 
 #convert TSV standards from copies/uL to copies/reaction
@@ -285,6 +287,8 @@ QS_STD_data$qt_method <- ifelse(QS_STD_data$CT >= QS_STD_data$FirstQ - 1.5 * (QS
 
 #for the median distance of 1 method, keep the replicate if the CT is >= median - 1 cycle and <= median + 1 cycle   
 QS_STD_data$medDist1_method <- ifelse(QS_STD_data$CT >= QS_STD_data$median -1 & QS_STD_data$CT <= QS_STD_data$median +1, "keep", "remove")
+
+
 
 #for the median distance of 1 method, keep the replicate if the CT is >= median - 1.5 cycles and <= median + 1.5 cycles 
 QS_STD_data$medDist1.5_method <- ifelse(QS_STD_data$CT >= QS_STD_data$median -1.5 & QS_STD_data$CT <= QS_STD_data$median +1.5, "keep", "remove")
@@ -349,10 +353,18 @@ slopes <- QS_STD_data %>% pivot_longer(cols = grep("_method",colnames(QS_STD_dat
 ```{r}
 QS_data_filtered <- merge(QS_data %>% filter(!grepl("04-21|04-27", date)) %>% filter(virus != "TSV" | date != "04-20") %>% filter(CT !="Undetermined") %>% mutate(CT = as.numeric(CT)) %>% filter(template > 0) %>% group_by(date, virus,`Sample Name`,template,num_reps)%>% summarise(FivNum = list(fivenum(CT)), count = sum(!is.na(CT)), mad_CT = mad(CT)) %>% mutate(FivNum = lapply(FivNum,setNames,nm = c("min", "FirstQ", "median","ThirdQ", "max"))) %>% unnest_wider(FivNum) %>% filter(count >= num_reps/2), QS_data %>% filter(!grepl("04-21|04-27", date)) %>% filter(virus != "TSV" | date != "04-20") %>% filter(CT !="Undetermined") %>% mutate(CT = as.numeric(CT)) %>% filter(template > 0) , by = c("date", "virus", "Sample Name","template", "num_reps")) %>%   mutate(medDist1_method = ifelse(CT >= median -1 & CT <= median +1, "keep", "remove")) %>% filter(medDist1_method == "keep") %>% group_by(virus, date,`Sample Name`,template,num_reps) %>% mutate(count2 = n()) %>% filter(count2 >=num_reps/2) %>% filter(!grepl("Water", template))
 
-
-
 #convert TSV standards from copies/uL to copies/reaction
 QS_data_filtered$template <- ifelse(QS_data_filtered$virus == "TSV" & QS_data_filtered$sample_type == "STD",20*as.numeric(QS_data_filtered$template),QS_data_filtered$template)
+
+#convert TSV standards from copies/uL to copies/reaction
+
+QS_data_filt1 <- merge(QS_data %>% group_by(date, virus,`Sample Name`,template,num_reps)%>% summarise(median = median(CT,na.rm = T), count = sum(!is.na(CT))) %>% mutate(at_least_3CTvals = ifelse(count >=num_reps/2, "keep","remove")),QS_data, by = c("date", "virus", "Sample Name","template", "num_reps")) %>%   mutate(medDist1_method = ifelse(CT >= median -1 & CT <= median +1, "keep", "remove")) %>% mutate(medDist1_method = ifelse(at_least_3CTvals == "remove",NA, medDist1_method))
+
+
+QS_data_filt_marked <- merge(QS_data_filt1, QS_data_filt1 %>% filter(medDist1_method == "keep") %>% group_by(virus, date,`Sample Name`,template,num_reps) %>% summarize(count2 = n()) %>% mutate(at_least_3CTvals_aftOut = ifelse(count2 >=num_reps/2, "keep","remove")), by = c("date", "virus", "Sample Name","template","num_reps"), all.x = T) %>% mutate(at_least_3CTvals_aftOut = ifelse(is.na(medDist1_method), NA, at_least_3CTvals_aftOut)) %>% mutate(at_least_3CTvals_aftOut = ifelse(medDist1_method=="remove", NA, at_least_3CTvals_aftOut)) %>% filter(!grepl("Water|^0$", template)) %>% mutate(template = ifelse(virus == "TSV" & sample_type == "STD",20*as.numeric(template),template))
+
+
+write.csv(QS_data_filt_marked, "../intermediate_files/all_SHERLOCK_data_filtering.csv", row.names = F, quote = F)
 
 ```
 
@@ -380,13 +392,11 @@ QS_data_LOD$copies <- gsub("1e0",format(1,scientific = T), QS_data_LOD$copies)
 QS_data_LOD$copies <- ifelse(QS_data_LOD$virus == "TSV" & QS_data_LOD$date == "06-23",20*as.numeric(QS_data_LOD$copies),as.numeric(QS_data_LOD$copies))
 
 
-QS_data_LOD %>% filter(!grepl("VP28",template)) %>% filter(!(copies ==100 & date =="03-24")) %>% filter(copies >= 100)%>%ggplot(aes(x = log10(copies), y = CT, color = interaction(date,template), group = interaction(date,template)))+ geom_point(aes(shape = virus),position = position_dodge(width = 0.5)) + geom_smooth(method = "lm", se = F)+ stat_regline_equation(label.x = c(rep(4, 9)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 3)+ theme_bw() + labs(color = "name", y = "Ct", x = "log10 copies") +  ggtitle("standards from different experiments") + scale_x_continuous(breaks =  c(seq(0,11,1))) + facet_wrap(template~virus)
-
 jpeg("../Supplemental_Material/Supp_figs/FigS3bd_gDNA_LOD_CTmeans_x_actual_copies.jpg", width = 5, height = 7, units = "in", res = 300)
-a <- QS_data_LOD %>%  filter(virus == "TSV") %>% filter(!grepl("VP28",template)) %>% filter(!(copies ==100 & date =="03-24")) %>% filter(copies >= 100) %>%  group_by(date,virus,template, copies) %>% summarise(mean = mean(CT), sd = sd(CT)) %>% ggplot(aes(x = log10(copies), y = mean, color = interaction(date,template), group = interaction(date,template))) + geom_point(position = position_dodge(width = 0.1)) + geom_errorbar(aes(ymin = mean-sd, ymax = mean + sd),alpha = 0.5, size = 0.5, width = 0,position = position_dodge(width = 0.1))+ geom_smooth(method = "lm", se = F, size = 0.5, linetype = 2)+ stat_regline_equation(label.x = c(rep(5.5, 9)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 3)+ theme_bw() + labs(color = "sample", y = "Ct", x = "log10 copies") + scale_x_continuous(breaks =  c(seq(1,10,1)), limits = c(1,10)) +scale_y_continuous(breaks =  c(seq(4,14,2)), limits = c(4,14))+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+a <- QS_data_LOD %>%  filter(virus == "TSV") %>% filter(!grepl("VP28",template)) %>%  group_by(date,virus,template, copies) %>% summarise(mean = mean(CT), sd = sd(CT)) %>% ggplot(aes(x = log10(copies), y = mean, color = interaction(date,template), group = interaction(date,template))) + geom_point(position = position_dodge(width = 0.1)) + geom_errorbar(aes(ymin = mean-sd, ymax = mean + sd),alpha = 0.5, size = 0.5, width = 0,position = position_dodge(width = 0.1))+ geom_smooth(method = "lm", se = F, size = 0.5, linetype = 2)+ stat_regline_equation(label.x = c(rep(5.5, 9)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 3)+ theme_bw() + labs(color = "sample", y = "Ct", x = "log10 copies") + scale_x_continuous(breaks =  c(seq(1,10,1)), limits = c(1,10)) +scale_y_continuous(breaks =  c(seq(4,14,2)), limits = c(4,14))+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank())
 
-b <- QS_data_LOD %>%  filter(virus == "WSSV") %>% filter(!grepl("VP28",template)) %>% filter(!(copies ==100 & date =="03-24")) %>% filter(copies >= 100) %>%  group_by(date,virus,template, copies) %>% summarise(mean = mean(CT), sd = sd(CT)) %>% mutate(template = gsub("Pvan","WSSV", template)) %>%ggplot(aes(x = log10(copies), y = mean, color = interaction(date,template), group = interaction(date,template))) + geom_point(position = position_dodge(width = 0.1)) + geom_errorbar(aes(ymin = mean-sd, ymax = mean + sd),alpha = 0.5, size = 0.5, width = 0,position = position_dodge(width = 0.1))+ geom_smooth(method = "lm", se = F, size = 0.5, linetype = 2)+ stat_regline_equation(label.x = c(rep(5.5, 9)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 3)+ theme_bw() + labs(color = "sample", y = "Ct", x = "log10 copies") + scale_x_continuous(breaks =  c(seq(1,10,1)), limits = c(1,10))+scale_y_continuous(breaks =  c(seq(4,14,2)), limits = c(4,14)) +theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+b <- QS_data_LOD %>%  filter(virus == "WSSV") %>% filter(!grepl("VP28",template)) %>%  group_by(date,virus,template, copies) %>% summarise(mean = mean(CT), sd = sd(CT)) %>% mutate(template = gsub("Pvan","WSSV", template)) %>%ggplot(aes(x = log10(copies), y = mean, color = interaction(date,template), group = interaction(date,template))) + geom_point(position = position_dodge(width = 0.1)) + geom_errorbar(aes(ymin = mean-sd, ymax = mean + sd),alpha = 0.5, size = 0.5, width = 0,position = position_dodge(width = 0.1))+ geom_smooth(method = "lm", se = F, size = 0.5, linetype = 2)+ stat_regline_equation(label.x = c(rep(5.5, 9)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 3)+ theme_bw() + labs(color = "sample", y = "Ct", x = "log10 copies") + scale_x_continuous(breaks =  c(seq(1,10,1)), limits = c(1,10))+scale_y_continuous(breaks =  c(seq(4,14,2)), limits = c(4,14)) +theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank())
 
 
