@@ -1,0 +1,168 @@
+---
+title: "SuppFig1-2"
+output: html_document
+date: '2022-11-16'
+---
+
+load libraries
+```{r}
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(ggpubr)
+
+```
+
+
+read and format in TSV LAMP data
+```{r}
+TSV_lamp_data <- read.csv("../data/TSV_SHERLOCKv2/raw/20211119_TSV_LAMP_Speed_Test_qPCR.txt", sep = "\t", skip = 15405, nrows = 12384, header = T, check.names = F)
+
+TSV_lamp_meta_data <- read.csv("../data/TSV_SHERLOCKv2/raw/20211119_TSV_LAMP_Speed_Test_qPCR.txt", sep = "\t", skip = 33, nrows = 96, header = T, check.names = F)
+
+TSV_lamp_data <- merge(TSV_lamp_data,TSV_lamp_meta_data %>% dplyr::select(Well, `Sample Name`) %>% filter(grepl("[1-9]|[A-z]",`Sample Name`)))
+
+#format columns
+TSV_lamp_data <- TSV_lamp_data %>% mutate(primer_set = gsub("_.*", "", `Sample Name`)) %>% mutate(copies = gsub("_[A-z].*","", `Sample Name` )) %>% mutate(copies = gsub(".*_","", copies)) %>% mutate(copies = as.numeric(gsub("1M", 1000000, copies)))%>%mutate(template = gsub(".*_", "", `Sample Name`)) %>% mutate(minutes = Cycle * 2) %>% mutate(VIC = as.numeric(gsub(",", "", VIC))) %>% dplyr::select(-ROX)
+
+#create T0 df
+TSV_lamp_data_T0 <- TSV_lamp_data %>% filter(Cycle == 1) %>% mutate(T0 = VIC)
+
+#combine T0 with all data
+TSV_lamp_data <- merge(TSV_lamp_data, TSV_lamp_data_T0 %>% dplyr::select(Well, T0))
+
+#baseline correct data
+TSV_lamp_data <- TSV_lamp_data %>% mutate(rel_rfus = VIC - T0) %>% filter(minutes <= 60)
+
+```
+
+
+read and format in TSV Cas data
+```{r}
+TSV_Cas_data <- read.csv("../data/TSV_SHERLOCKv2/raw/2021-11-29_151203_QuantStudio_12K_Flex_export.txt", sep = "\t", skip = 7951, nrows = 2880, header = T, check.names = F)
+
+TSV_Cas_meta_data <- read.csv("../data/TSV_SHERLOCKv2/raw/2021-11-29_151203_QuantStudio_12K_Flex_export.txt", sep = "\t", skip = 37, nrows = 162, header = T, check.names = F)
+
+TSV_Cas_data <- merge(TSV_Cas_data,TSV_Cas_meta_data %>% dplyr::select(Well, `Sample Name`) %>% filter(grepl("[1-9]|[A-z]",`Sample Name`)))
+
+#format columns
+TSV_Cas_data <- TSV_Cas_data %>% mutate(guideRNA = gsub("-.*", "", `Sample Name`)) %>% mutate(`Sample Name` = gsub("NTC", 0, `Sample Name`)) %>% mutate(copies = gsub(".*-","", `Sample Name` )) %>% mutate(copies = gsub(".*_","", copies)) %>% mutate(copies = as.numeric(gsub("1M", 1000000, copies)))%>% mutate(minutes = Cycle * 2) %>% mutate(FAM = as.numeric(gsub(",", "", FAM))) %>% dplyr::select(-ROX)
+
+#create T0 df
+TSV_Cas_data_T0 <- TSV_Cas_data %>% filter(Cycle == 1) %>% mutate(T0 = FAM)
+
+#combine T0 with all data
+TSV_Cas_data <- merge(TSV_Cas_data, TSV_Cas_data_T0 %>% dplyr::select(Well, T0))
+
+#baseline correct data
+TSV_Cas_data <- TSV_Cas_data %>% mutate(rel_rfus = FAM - T0) %>% filter(minutes <= 60)
+
+```
+
+
+
+
+read in and format WSSV LAMP data
+```{r}
+WSSV_lamp_data <- read_xlsx("../data/WSSV_SHERLOCKv2/raw/2021-11-10 SAT LAMP primer screen_Multicomponent Data_QuantStudio 12K Flex_export.xlsx", skip = 29)
+
+WSSV_lamp_meta_data <- read_xlsx("../data/WSSV_SHERLOCKv2/raw/2021-11-10 SAT LAMP primer screen_Sample Setup_QuantStudio 12K Flex_export.xlsx", skip = 29)
+
+WSSV_lamp_data <- merge(WSSV_lamp_data %>% dplyr::select(-ROX),WSSV_lamp_meta_data %>% dplyr::select(Well, `Sample Name`) %>% filter(grepl("[1-9]|[A-z]",`Sample Name`)))
+
+#format columns
+WSSV_lamp_data <- WSSV_lamp_data %>% mutate(primer_set = gsub("_.*", "", `Sample Name`)) %>% mutate(copies = gsub(".*_","", `Sample Name` )) %>% mutate(copies = as.numeric(gsub("1e6", 1000000, copies))) %>% mutate(minutes = Cycle * 2) 
+
+#create T0 df
+WSSV_lamp_data_T0 <- WSSV_lamp_data %>% filter(Cycle == 1) %>% mutate(T0 = FAM)
+
+#combine T0 with all data
+WSSV_lamp_data <- merge(WSSV_lamp_data, WSSV_lamp_data_T0 %>% dplyr::select(Well, T0))
+
+#baseline correct data
+WSSV_lamp_data <- WSSV_lamp_data %>% mutate(rel_rfus = FAM - T0) %>% filter(minutes <= 60)
+```
+
+read in and format WSSV data from primer modification test
+```{r}
+WSSV_lamp_data2 <- read_xlsx("../data/WSSV_SHERLOCKv2/raw/2021-12-17 SAT LAMP primer screen_Multicomponent Data_QuantStudio 12K Flex_export.xlsx", skip = 29)
+
+WSSV_lamp_meta_data2 <- read_xlsx("../data/WSSV_SHERLOCKv2/raw/2021-12-17 SAT LAMP primer screen_Sample Setup_QuantStudio 12K Flex_export.xlsx", skip = 29)
+
+WSSV_lamp_data2 <- merge(WSSV_lamp_data2 %>% dplyr::select(-ROX),WSSV_lamp_meta_data2 %>% dplyr::select(Well, `Sample Name`) %>% filter(grepl("[1-9]|[A-z]",`Sample Name`)))
+
+#format columns
+WSSV_lamp_data2 <- WSSV_lamp_data2 %>% mutate(`Sample Name` = gsub("_110t", "-110t", `Sample Name`)) %>% mutate(primer_set = gsub(".*_", "", `Sample Name`)) %>% mutate(copies = gsub("_.*","", `Sample Name` )) %>% mutate(copies = gsub("1e4", 10000, copies)) %>%mutate(copies = gsub("1e3", 1000, copies)) %>%mutate(copies = gsub("1e2", 100, copies)) %>% mutate(copies = as.numeric(copies)) %>% mutate(minutes = Cycle * 2) 
+
+#create T0 df
+WSSV_lamp_data2_T0 <- WSSV_lamp_data2 %>% filter(Cycle == 1) %>% mutate(T0 = FAM)
+
+#combine T0 with all data
+WSSV_lamp_data2 <- merge(WSSV_lamp_data2, WSSV_lamp_data2_T0 %>% dplyr::select(Well, T0))
+
+#baseline correct data
+WSSV_lamp_data2 <- WSSV_lamp_data2 %>% mutate(rel_rfus = FAM - T0) %>% filter(minutes <= 60)
+
+
+```
+
+read in WSSV Cas data
+```{r}
+WSSV_cas_data <- read_xlsx("../data/WSSV_SHERLOCKv2/raw/Public_Cas12b-HEX8_4_2021 4_16_10 PM_8_4_2021 3_14_29 PM.xlsx",skip = 62)
+
+WSSV_cas_meta_data <- read_xlsx("../data/WSSV_SHERLOCKv2/raw/20210804_SHERLOCK_meta_data.xlsx")
+
+WSSV_cas_data <- WSSV_cas_data %>% mutate(sec = `Cycle(Seconds)/Well`) %>% pivot_longer(names_to= "Well", values_to = "RFUs", 4:ncol(WSSV_cas_data)) %>% filter(!is.na(RFUs)) %>% dplyr::select(sec,Well, RFUs) %>% mutate(minutes = sec/60)
+
+WSSV_cas_data <- merge(WSSV_cas_data,WSSV_cas_meta_data %>% dplyr::select(Well, Sample)) 
+
+#format columns
+WSSV_cas_data <- WSSV_cas_data %>% mutate(guideRNA = gsub("_.*", "", Sample), copies = gsub(".*_","", Sample)) %>% filter(grepl("PF|2e8", copies))%>% mutate(copies = gsub("PFSh",0, copies)) %>% mutate(copies = as.numeric(gsub("2e8", 400000000,copies)))
+
+#create T0 df
+WSSV_cas_data_T0 <- WSSV_cas_data %>% filter(sec == 0) %>% mutate(T0 = RFUs)
+
+#combine T0 with all data
+WSSV_cas_data <- merge(WSSV_cas_data, WSSV_cas_data_T0 %>% dplyr::select(Well, T0))
+
+#baseline correct data
+WSSV_cas_data <- WSSV_cas_data %>% mutate(rel_rfus = RFUs - T0) %>% filter(minutes <= 60)
+```
+
+
+
+plot LAMP data
+```{r}
+jpeg("../Supplemental_Material/Supp_figs/FigS1_LAMP_screen.jpg", width = 10, height = 5, units = "in", res = 300)
+
+a <- ggplot(TSV_lamp_data %>% filter(copies > 100) %>% filter(template == "gB"), aes(x = minutes, y = rel_rfus, color = primer_set, group= Well))+ geom_point(size = 0.8) + geom_line() + theme_bw() + labs(y = "relative RFUs", x = "minutes", color = "TSV primer set")
+
+
+b <- ggplot(WSSV_lamp_data %>% filter(copies > 100), aes(x = minutes, y = rel_rfus, color = primer_set, group= Well))+ geom_point(size = 0.8) + geom_line() + theme_bw() + labs(y = "relative RFUs", x = "minutes", color = "WSSV primer set")
+
+c <- ggplot(WSSV_lamp_data2, aes(x = minutes, y = rel_rfus, color = factor(copies), group= Well))+ geom_point(size = 0.8) + geom_line() + theme_bw() + labs(y = "relative RFUs", x = "minutes", color = "WSSV copies") + facet_wrap(~primer_set, ncol = 4)
+
+
+d <- ggarrange(ggarrange(a,b, ncol = 2, labels = c("a", "b")), c, nrow = 2, labels = c(NA,"c"))
+d
+dev.off()
+```
+
+
+
+
+plot Fig S2
+```{r}
+jpeg("../Supplemental_Material/Supp_figs/FigS2_gRNA_screen.jpg", width = 8, height = 10, units = "in", res = 300)
+
+a <- ggplot(TSV_Cas_data, aes(x = minutes, y = rel_rfus, color = factor(copies), group= Well))+ geom_point(size = 0.8) + geom_line() + theme_bw() + labs(y = "relative RFUs", x = "minutes", color = "TSV copies") + facet_wrap(~guideRNA) + scale_color_manual(values = c("gray60", "black")) + 
+theme(legend.position = "top")
+
+b <- ggplot(WSSV_cas_data, aes(x = minutes, y = rel_rfus, color = factor(copies), group= Well))+ geom_point(size = 0.8) + geom_line() + theme_bw() + labs(y = "relative RFUs", x = "minutes", color = "WSSV copies") + facet_wrap(~guideRNA) + scale_color_manual(values = c("gray60", "black"))+ 
+theme(legend.position = "top")
+
+c <- ggarrange(a,b, nrow = 2, labels = c("a","b"))
+c
+dev.off()
+
+```
