@@ -621,10 +621,10 @@ ggplot( QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "TSV") %
 dev.off()
 
 #wilcox test for qPCR and Sherlock predicted copies vs. strains
-wilcox.test(qPCR_cn ~ shrimp_strain, data = QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "TSV") %>% mutate(shrimp_strain = ifelse(grepl("[3][1-5]", template),"susceptible", "resistant")), na.rm =T, paired = F, exact = F)
+wilcox.test(qPCR_cn ~ shrimp_strain, data = QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "TSV") %>% mutate(shrimp_strain = ifelse(grepl("Val.1$|Val.16$|Val.21$|Val.26$|Val.35$", template),"susceptible", "tolerant")), na.rm =T, paired = F, exact = F)
 
 
-wilcox.test(`SHERLOCK_cp/uL_OG` ~ shrimp_strain, data = QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "TSV") %>% mutate(shrimp_strain = ifelse(grepl("[3][1-5]", template),"susceptible", "resistant")), na.rm =T, paired = F, exact = F)
+wilcox.test(`SHERLOCK_cp/uL_OG` ~ shrimp_strain, data = QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "TSV") %>% mutate(shrimp_strain = ifelse(grepl("Val.1$|Val.16$|Val.21$|Val.26$|Val.35$", template),"susceptible", "tolerant")), na.rm =T, paired = F, exact = F)
 
 ```
 
@@ -657,7 +657,7 @@ write.csv(tableS3, "../Supplemental_Material/Tables/TableS3.csv", row.names = F,
 
 ```{r}
 jpeg("../Supplemental_Material/Supp_figs/FigS5a_WSSV_SHERLOCKv1xSHERLOCKv2_CoV.jpg", width = 5, height = 4, units = "in", res = 300)
- tableS3 %>% filter(Target == "WSSV") %>% mutate(qPCR_cv = `qPCR predicted copies/uL (Std Dev)`/`qPCR predicted copies/uL (Mean)`, SHERLOCKv1_cv = `SHERLOCKv1 predicted copies/uL (Std Dev)`/`SHERLOCKv1 predicted copies/uL (mean)`, SHERLOCKv2_cv = `SHERLOCKv2 predicted copies/uL (Std Dev)`/`SHERLOCKv2 predicted copies/uL (Mean)`) %>% pivot_longer(cols = 9:11, names_to = "method", values_to = "cv") %>% mutate(method = gsub("_cv","", method)) %>% mutate(qPCR_bin = cut(`qPCR predicted copies/uL (Mean)`, breaks = c(0,1000,1000000,10000000000)) ) %>% mutate(qPCR_bin = gsub("\\(", "", qPCR_bin)) %>% mutate(qPCR_bin = gsub(","," to ", qPCR_bin)) %>% mutate(qPCR_bin = gsub("]", "", qPCR_bin)) %>%filter(method != "qPCR") %>% ggplot(aes(x = method, y = cv)) + geom_boxplot(color = "gray60", width = 0.4, outlier.shape = NA)  + geom_jitter(aes(color = qPCR_bin),width = 0.2, alpha = 0.7) + theme_bw() + labs(y = "coefficient of variation across technical replicates", color = "qPCR predicted \n viral copies") + scale_color_manual(values = c("gold2", "darkorange2", "red4"))
+ tableS3 %>% filter(Target == "WSSV") %>% mutate(qPCR_cv = `qPCR predicted copies/uL (Std Dev)`/`qPCR predicted copies/uL (Mean)`, SHERLOCKv1_cv = `SHERLOCKv1 predicted copies/uL (Std Dev)`/`SHERLOCKv1 predicted copies/uL (mean)`, SHERLOCKv2_cv = `SHERLOCKv2 predicted copies/uL (Std Dev)`/`SHERLOCKv2 predicted copies/uL (Mean)`) %>% pivot_longer(cols = 9:11, names_to = "method", values_to = "cv") %>% mutate(method = gsub("_cv","", method)) %>% mutate(qPCR_bin = cut(`qPCR predicted copies/uL (Mean)`, breaks = c(0,1000,1000000,10000000000)) ) %>% mutate(qPCR_bin = gsub("\\(", "", qPCR_bin)) %>% mutate(qPCR_bin = gsub(","," to ", qPCR_bin)) %>% mutate(qPCR_bin = gsub("]", "", qPCR_bin)) %>%filter(method != "qPCR") %>% ggplot(aes(x = method, y = cv)) + geom_boxplot(color = "gray60", width = 0.4, outlier.shape = NA)  + geom_jitter(aes(color = qPCR_bin),width = 0.2, alpha = 0.7) + theme_bw() + labs(y = "coefficient of variation \n across technical replicates", color = "qPCR predicted \n viral copies") + scale_color_manual(values = c("gold2", "darkorange2", "red4")) + theme(text = element_text(size = 14)) 
 dev.off()
 ```
 
@@ -665,7 +665,7 @@ dev.off()
 #### qPCR vs. SHERLOCKv2 predicted viral copies foldchange ####
 ```{r}
 jpeg("../Supplemental_Material/Supp_figs/FigS5b_qPCRvsSHERLOCKv2_ViralCopiesFC.jpg", width = 4.5, height = 4, units = "in", res = 300)
-tableS3 %>% mutate(fc = foldchange(`qPCR predicted copies/uL (Mean)`, `SHERLOCKv2 predicted copies/uL (Mean)`), direction = ifelse(fc < 0, "over", "under")) %>% filter(!is.na(fc))%>% mutate(direction = ifelse(-5 <= fc & fc <= 5, "similar",direction))  %>% ggplot(aes(x = Target, y = log10(abs(fc)))) + geom_boxplot(color = "gray60",width = 0.4, outlier.shape = NA) + geom_jitter(aes(color = direction), width = 0.2) + theme_bw() + labs(y = "qPCR:SHERLOCKv2 foldchange (log10)", color = "viral copies \n estimate", x = "target")
+tableS3 %>% mutate(fc = foldchange(`qPCR predicted copies/uL (Mean)`, `SHERLOCKv2 predicted copies/uL (Mean)`), direction = ifelse(fc < 0, "over", "under")) %>% filter(!is.na(fc))%>% mutate(direction = ifelse(-5 <= fc & fc <= 5, "similar",direction))  %>% ggplot(aes(x = Target, y = log10(abs(fc)))) + geom_boxplot(color = "gray60",width = 0.4, outlier.shape = NA) + geom_jitter(aes(color = direction), width = 0.2) + theme_bw() + labs(y = "qPCR:SHERLOCKv2 foldchange (log10)", color = "estimate of \n viral copies", x = "target")+ theme(text = element_text(size = 14)) 
 dev.off()
 
 ````
