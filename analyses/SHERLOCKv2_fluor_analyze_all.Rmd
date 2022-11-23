@@ -421,25 +421,6 @@ QS_data_filtered_summ <- QS_data_filtered%>% group_by(date, virus, template) %>%
 ```
 
 
-
-```{r}
-### decided to avoid using ng/rxn because these were measured differently and seem to confound the results ###
-#code below is only relevant for ng/rxn analysis
-#add column for ng/rxn
-#QS_data_filtered_summ <- QS_data_filtered_summ %>% mutate(ng_per_rxn = ifelse(grepl("TSV", virus),10,1))
-#QS_data_filtered_summ <- QS_data_filtered_summ %>% mutate(ng_per_rxn = ifelse(!grepl("^[A-Z]", template),NA,ng_per_rxn))
-#QS_data_filtered_summ <- QS_data_filtered_summ %>% mutate(ng_per_rxn = ifelse(grepl("Pvan006", template),0.305,ng_per_rxn))
-#QS_data_filtered_summ <- QS_data_filtered_summ %>% mutate(ng_per_rxn = ifelse(grepl("Pvan009", template) & grepl("04-12",date),0.127,ng_per_rxn))
-#QS_data_filtered_summ <- QS_data_filtered_summ %>% mutate(ng_per_rxn = ifelse(grepl("WSSV", template),"NA",ng_per_rxn))
-
-#write.csv(QS_data_filtered_summ %>% arrange(virus,template), "SHERLOCKv2_results_filtered_meanCTs.csv", quote = F, row.names =F)
-
-```
-
-
-
-
-
 #plot standards (supp fig. 3a-b)
 ```{r}
 #standard CT means x actual copies
@@ -552,51 +533,23 @@ QS_data_filtered_summ_dil <- merge(QS_data_filtered_summ %>% mutate(date = gsub(
 #compare qPCR (TSV and WSSV) and SHERLOCK v1 (WSSV only) quantifications with SHERLOCK v2 quantification of unknown samples
 
 ```{r}
-##### read in arun dhar's data ####
-TSV_qPCR <- read_xlsx("../data/TSV RNA from ArunDhar 20201124.xlsx", col_names = T, skip = 3,sheet = "Tech Rep Data - AD")
-
-##### format qPCR data ####
-#first add the shrimp strain information from the dilution data with the qPCR data. The unique function is used because some samples were tested on different days using different dilutions. Since we're only using the sample name information here, the unique function removes redundant lines. 
-TSV_qPCR <- merge(TSV_qPCR, unique(dil_data_TSV %>% dplyr::select(Sample, template)))
-#rename columns 3:5 so they will match in combining with other data frames later on
-colnames(TSV_qPCR)[3:5] <- c("virus","qPCR_cn", "qPCR_std")
-#create new columns that will match with other data frames later on
-TSV_qPCR <- TSV_qPCR %>% mutate(SHERLOCK_cn = NA, SHERLOCK_std = NA, preparer = "RCF")
-
-
 #### read in TSV qPCRs by SRM ####
 TSV_qPCR_SRM <- read.csv("../intermediate_files/TSV_qPCR_SRM.csv")
 #create new columns that will match with other data frames later on
-TSV_qPCR_SRM <- TSV_qPCR_SRM %>% mutate(SHERLOCK_cn = NA, SHERLOCK_std = NA, template = Sample.Name, qPCR_cn = copies_per_uL_OG_sample, qPCR_std = sd_copies_per_uL_OG_sample, virus = "TSV", preparer = "SRM")
-
-
-#create data frame containing sample names that were processed in Arun's and SRM's qPCR experiments
-#rbind function combines Arun's and SRM's data subsetted for 5 common columns using dplyr::select. 
-#count function totals the frequency of each sample name in the data frame and filter selects sample names that are in the data frame at least 2 times.
-TSV_shared_samples <- rbind(TSV_qPCR %>% dplyr::select(preparer, template, qPCR_cn, qPCR_std),TSV_qPCR_SRM %>% dplyr::select(preparer, template, qPCR_cn, qPCR_std)) %>% count(template) %>% filter(n>=2)
+TSV_qPCR_SRM <- TSV_qPCR_SRM %>% mutate(SHERLOCK_cn = NA, SHERLOCK_std = NA, template = Sample.Name, qPCR_cn = copies_per_uL_OG_sample, qPCR_std = sd_copies_per_uL_OG_sample, virus = "TSV")
 
 #### combine all TSV qPCR data ####
-#this code is almost the same as above except it filters the data frame for samples that were processed in Arun's and SRM's experiments (in the data frame created above).
-TSV_qPCR_all <- rbind(TSV_qPCR %>% dplyr::select(preparer, Sample, template, qPCR_cn, qPCR_std),
-  TSV_qPCR_SRM %>% dplyr::select(preparer, Sample, template, qPCR_cn, qPCR_std)) %>% filter(template %in% TSV_shared_samples$template)
+TSV_qPCR_all <- merge(TSV_qPCR_SRM, unique(dil_data_TSV %>% dplyr::select(Sample, template)))
 
-#classify susceptible vs. resistant. This creates a new column called 'type' that classifies the shrimp strain as susceptible if it has an 'R' in the string or resistant if it doesn't.
-TSV_qPCR_all$type <- ifelse(grepl("R", TSV_qPCR_all$Sample),"susceptible", "resistant")
+#classify susceptible vs. tolerant. This creates a new column called 'type' that classifies the shrimp strain as susceptible if it is Val.1, Val.16, Val.21, Val.26, or Val.35 (because these were the susceptible shrimp samples) in the string or tolerant if it doesn't.
+TSV_qPCR_all$type <- ifelse(grepl("Val.1$|Val.16$|Val.21$|Val.26$|Val.35$", TSV_qPCR_all$template),"susceptible", "tolerant")
 
 #convert undetermined to 0
 TSV_qPCR_all$qPCR_cn <- ifelse(TSV_qPCR_all$qPCR_cn =="Undetermined", 0, as.numeric(TSV_qPCR_all$qPCR_cn))
 
-
-
-#### plot susceptible vs. resistant ####
-#This creates a histogram of the number of shrimp binned by viral quantities on the x axis. It facets Roberto's and SRM's data. 
-jpeg("../intermediate_files/TSV_qPCR_suscept_v_resist.jpg", width = 8, height = 4, units = "in", res = 300)
-ggplot(TSV_qPCR_all) + geom_histogram(aes(qPCR_cn, fill = type),color = "black", binwidth = 1, position = position_dodge()) + scale_x_log10(limits = c(10^0, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))+ scale_y_continuous(breaks = seq(1,20,2)) + facet_wrap(~preparer) + theme_bw() + labs(y = "number of animals", x = "qPCR predicted copies/uL", fill = "shrimp strain") 
-dev.off()
-
 #### plot susceptible vs. resistant for just SRM data ####
 jpeg("../Figs/Fig3c_TSV_qPCR_suscept_v_resist_SRM.jpg", width = 4, height = 3, units = "in", res = 300)
-ggplot(TSV_qPCR_all %>% filter(preparer == "SRM")) + geom_histogram(aes(qPCR_cn, fill = type),color = "black", binwidth = 1, position = position_dodge()) + scale_x_log10(limits = c(10^0, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))+ scale_y_continuous(breaks = seq(1,20,2)) + theme_bw() + labs(y = "number of animals", x = "qPCR predicted copies/uL", fill = "shrimp strain") + theme(text = element_text(size = 14),legend.position=c(0.8,0.8),legend.background = element_rect(fill = "white", color = "black")) 
+ggplot(TSV_qPCR_all) + geom_histogram(aes(qPCR_cn, fill = type),color = "black", binwidth = 1, position = position_dodge()) + scale_x_log10(limits = c(10^0, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))+ scale_y_continuous(breaks = seq(1,20,2)) + theme_bw() + labs(y = "number of animals", x = "qPCR predicted copies/uL", fill = "shrimp strain") + theme(text = element_text(size = 14),legend.position=c(0.8,0.8),legend.background = element_rect(fill = "white", color = "black")) 
 dev.off()
 ```
 
@@ -658,13 +611,13 @@ ggplot(QS_data_filtered_summ_dil_qPCR_keep_repeats, aes(x = qPCR_cn, y = `SHERLO
   
 #corr plot for just TSV with shrimp strain colored
 jpeg("../Figs/Fig3d_TSV_qPCR_SRMxSHERLOCKv2.jpg", width = 4, height = 3.5, units = "in", res = 300)
-QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "TSV") %>% mutate(shrimp_strain = ifelse(grepl("[3][1-5]", template),"susceptible", "resistant")) %>% ggplot(aes(x = qPCR_cn, y = `SHERLOCK_cp/uL_OG`))+ geom_point(aes(color = shrimp_strain),size = 2)+theme_bw() + labs(y = "SHERLOCKv2 predicted copies/uL", x = "qPCR predicted copies/uL", color = "shrimp strain") + scale_x_log10(limits = c(10^-1, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + scale_y_log10(limits = c(10^-1, 10^10),breaks =trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x))) +  stat_cor(label.y.npc="top", label.x.npc = "middle", method = "pearson", size = 4) + theme(text = element_text(size = 14), legend.position=c(0.2,0.8),legend.background = element_rect(fill = "white", color = "black"))
+QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "TSV") %>% mutate(shrimp_strain = ifelse(grepl("Val.1$|Val.16$|Val.21$|Val.26$|Val.35$", template),"susceptible", "tolerant")) %>% ggplot(aes(x = qPCR_cn, y = `SHERLOCK_cp/uL_OG`))+ geom_point(aes(color = shrimp_strain),size = 2)+theme_bw() + labs(y = "SHERLOCKv2 predicted copies/uL", x = "qPCR predicted copies/uL", color = "shrimp strain") + scale_x_log10(limits = c(10^-1, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + scale_y_log10(limits = c(10^-1, 10^10),breaks =trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x))) +  stat_cor(label.y.npc="top", label.x.npc = "middle", method = "pearson", size = 4) + theme(text = element_text(size = 14), legend.position=c(0.2,0.8),legend.background = element_rect(fill = "white", color = "black"))
 dev.off()
 
 
 #### histogram plot susceptible vs. resistant for just SRM data ####
 jpeg("../intermediate_files/TSV_qPCR_suscept_v_resist_SRMqPCRvSHERLOCK_histogram.jpg", width = 4.5, height = 4, units = "in", res = 300)
-ggplot( QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "TSV") %>% mutate(shrimp_strain = ifelse(grepl("[3][1-5]", template),"susceptible", "resistant")) %>% pivot_longer(cols = c(11,12,15,16), names_to ="meth", values_to = "copies") %>% mutate(method = gsub("_.*","",meth), stat = gsub(".*_", "",meth)) %>% mutate(stat = ifelse(grepl("s", stat), "std","mean")) %>% dplyr::select(-meth) %>% pivot_wider(names_from = stat, values_from = copies))+ geom_histogram(aes(mean, fill = shrimp_strain),color = "black", binwidth = 1, position = position_dodge()) + scale_x_log10(limits = c(10^0, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))+ scale_y_continuous(breaks = seq(1,20,2)) + theme_bw() + labs(y = "number of animals", x = "qPCR predicted copies/uL", fill = "shrimp strain") + theme(text = element_text(size = 14),legend.position="top")  + facet_wrap(~method)
+ggplot( QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "TSV") %>% mutate(shrimp_strain = ifelse(grepl("Val.1$|Val.16$|Val.21$|Val.26$|Val.35$", template),"susceptible", "tolerant")) %>% pivot_longer(cols = c(11,12,15,16), names_to ="meth", values_to = "copies") %>% mutate(method = gsub("_.*","",meth), stat = gsub(".*_", "",meth)) %>% mutate(stat = ifelse(grepl("s", stat), "std","mean")) %>% dplyr::select(-meth) %>% pivot_wider(names_from = stat, values_from = copies))+ geom_histogram(aes(mean, fill = shrimp_strain),color = "black", binwidth = 1, position = position_dodge()) + scale_x_log10(limits = c(10^0, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))+ scale_y_continuous(breaks = seq(1,20,2)) + theme_bw() + labs(y = "number of animals", x = "qPCR predicted copies/uL", fill = "shrimp strain") + theme(text = element_text(size = 14),legend.position="top")  + facet_wrap(~method)
 dev.off()
 
 #wilcox test for qPCR and Sherlock predicted copies vs. strains
