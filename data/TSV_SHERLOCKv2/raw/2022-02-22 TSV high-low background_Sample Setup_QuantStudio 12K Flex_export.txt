@@ -1,0 +1,173 @@
+* Barcode = NA
+* Block Type = Fast 96-Well Block (0.1mL)
+* Calibration Background is expired  = No
+* Calibration Background performed on = 02-18-2022
+* Calibration Normalization FAM-ROX is expired = Yes
+* Calibration Normalization FAM-ROX performed on = 01-27-2021
+* Calibration Normalization VIC-ROX is expired = Yes
+* Calibration Normalization VIC-ROX performed on = 01-27-2021
+* Calibration Pure Dye FAM is expired = Yes
+* Calibration Pure Dye FAM performed on = 01-27-2021
+* Calibration Pure Dye ROX is expired = Yes
+* Calibration Pure Dye ROX performed on = 01-27-2021
+* Calibration Pure Dye VIC is expired = Yes
+* Calibration Pure Dye VIC performed on = 01-27-2021
+* Calibration ROI is expired  = No
+* Calibration ROI performed on = 02-18-2022
+* Calibration Uniformity is expired  = Yes
+* Calibration Uniformity performed on = 01-27-2021
+* Chemistry = TAQMAN
+* Comment = NA
+* Date Created = 02-23-2022 13:02:58 PM EST
+* Date Modified = 02-23-2022 16:36:10 PM EST
+* Experiment File Name = E:\2022-02-22 TSV high-low background.eds
+* Experiment Name = 2022-02-22 TSV high-low background
+* Experiment Run Start Time = 02-23-2022 23:14:49 PM EST
+* Experiment Run Stop Time = 02-24-2022 00:48:46 AM EST
+* Experiment Type = Standard Curve
+* Instrument Name = 285881139
+* Instrument Serial Number = 285881139
+* Instrument Type = QuantStudio 12K Flex
+* Passive Reference = ROX
+* Quantification Cycle Method = Ct
+* Signal Smoothing On = true
+* Stage/ Cycle where Analysis is performed = Stage 1, Step 1
+* User Name = NA
+
+[Sample Setup]
+Well	Well Position	Sample Name	Sample Color	Biogroup Name	Biogroup Color	Target Name	Target Color	Task	Reporter	Quencher	Quantity	Comments
+1	A1	TSV-5 R (2) 10 ng	"RGB(176,23,31)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+1	A1	TSV-5 R (2) 10 ng	"RGB(176,23,31)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+2	A2	TSV-5 R (2) 10 ng	"RGB(176,23,31)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+2	A2	TSV-5 R (2) 10 ng	"RGB(176,23,31)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+3	A3	TSV-5 R (2) 10 ng	"RGB(176,23,31)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+3	A3	TSV-5 R (2) 10 ng	"RGB(176,23,31)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+4	A4	TSV-5 R (2) 10 ng spf spike	"RGB(0,0,255)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+4	A4	TSV-5 R (2) 10 ng spf spike	"RGB(0,0,255)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+5	A5	TSV-5 R (2) 10 ng spf spike	"RGB(0,0,255)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+5	A5	TSV-5 R (2) 10 ng spf spike	"RGB(0,0,255)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+6	A6	TSV-5 R (2) 10 ng spf spike	"RGB(0,0,255)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+6	A6	TSV-5 R (2) 10 ng spf spike	"RGB(0,0,255)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+7	A7											
+8	A8											
+9	A9											
+10	A10											
+11	A11											
+12	A12											
+13	B1	TSV-5 R (2) 8 ng	"RGB(0,139,69)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+13	B1	TSV-5 R (2) 8 ng	"RGB(0,139,69)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+14	B2	TSV-5 R (2) 8 ng	"RGB(0,139,69)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+14	B2	TSV-5 R (2) 8 ng	"RGB(0,139,69)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+15	B3	TSV-5 R (2) 8 ng	"RGB(0,139,69)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+15	B3	TSV-5 R (2) 8 ng	"RGB(0,139,69)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+16	B4	TSV-5 R (2) 8 ng spf spike	"RGB(255,127,0)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+16	B4	TSV-5 R (2) 8 ng spf spike	"RGB(255,127,0)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+17	B5	TSV-5 R (2) 8 ng spf spike	"RGB(255,127,0)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+17	B5	TSV-5 R (2) 8 ng spf spike	"RGB(255,127,0)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+18	B6	TSV-5 R (2) 8 ng spf spike	"RGB(255,127,0)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+18	B6	TSV-5 R (2) 8 ng spf spike	"RGB(255,127,0)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+19	B7											
+20	B8											
+21	B9											
+22	B10											
+23	B11											
+24	B12											
+25	C1	TSV-5 R (2) 6 ng	"RGB(139,137,112)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+25	C1	TSV-5 R (2) 6 ng	"RGB(139,137,112)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+26	C2	TSV-5 R (2) 6 ng	"RGB(139,137,112)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+26	C2	TSV-5 R (2) 6 ng	"RGB(139,137,112)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+27	C3	TSV-5 R (2) 6 ng	"RGB(139,137,112)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+27	C3	TSV-5 R (2) 6 ng	"RGB(139,137,112)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+28	C4	TSV-5 R (2) 6 ng spf spike	"RGB(238,121,66)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+28	C4	TSV-5 R (2) 6 ng spf spike	"RGB(238,121,66)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+29	C5	TSV-5 R (2) 6 ng spf spike	"RGB(238,121,66)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+29	C5	TSV-5 R (2) 6 ng spf spike	"RGB(238,121,66)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+30	C6	TSV-5 R (2) 6 ng spf spike	"RGB(238,121,66)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+30	C6	TSV-5 R (2) 6 ng spf spike	"RGB(238,121,66)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+31	C7											
+32	C8											
+33	C9											
+34	C10											
+35	C11											
+36	C12											
+37	D1	TSV-5 R (2) 4 ng	"RGB(142,56,142)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+37	D1	TSV-5 R (2) 4 ng	"RGB(142,56,142)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+38	D2	TSV-5 R (2) 4 ng	"RGB(142,56,142)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+38	D2	TSV-5 R (2) 4 ng	"RGB(142,56,142)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+39	D3	TSV-5 R (2) 4 ng	"RGB(142,56,142)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+39	D3	TSV-5 R (2) 4 ng	"RGB(142,56,142)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+40	D4	TSV-5 R (2) 4 ng spf spike	"RGB(198,113,113)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+40	D4	TSV-5 R (2) 4 ng spf spike	"RGB(198,113,113)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+41	D5	TSV-5 R (2) 4 ng spf spike	"RGB(198,113,113)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+41	D5	TSV-5 R (2) 4 ng spf spike	"RGB(198,113,113)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+42	D6	TSV-5 R (2) 4 ng spf spike	"RGB(198,113,113)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+42	D6	TSV-5 R (2) 4 ng spf spike	"RGB(198,113,113)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+43	D7											
+44	D8											
+45	D9											
+46	D10											
+47	D11											
+48	D12											
+49	E1	TSV-5 R (2) 2 ng	"RGB(0,245,255)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+49	E1	TSV-5 R (2) 2 ng	"RGB(0,245,255)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+50	E2	TSV-5 R (2) 2 ng	"RGB(0,245,255)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+50	E2	TSV-5 R (2) 2 ng	"RGB(0,245,255)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+51	E3	TSV-5 R (2) 2 ng	"RGB(0,245,255)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+51	E3	TSV-5 R (2) 2 ng	"RGB(0,245,255)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+52	E4	TSV-5 R (2) 2 ng spf spike	"RGB(238,220,130)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+52	E4	TSV-5 R (2) 2 ng spf spike	"RGB(238,220,130)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+53	E5	TSV-5 R (2) 2 ng spf spike	"RGB(238,220,130)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+53	E5	TSV-5 R (2) 2 ng spf spike	"RGB(238,220,130)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+54	E6	TSV-5 R (2) 2 ng spf spike	"RGB(238,220,130)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+54	E6	TSV-5 R (2) 2 ng spf spike	"RGB(238,220,130)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+55	E7											
+56	E8											
+57	E9											
+58	E10											
+59	E11											
+60	E12											
+61	F1	NTC-10 ng spf	"RGB(238,238,0)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+61	F1	NTC-10 ng spf	"RGB(238,238,0)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+62	F2	NTC-10 ng spf	"RGB(238,238,0)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+62	F2	NTC-10 ng spf	"RGB(238,238,0)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+63	F3	NTC-10 ng spf	"RGB(238,238,0)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+63	F3	NTC-10 ng spf	"RGB(238,238,0)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+64	F4											
+65	F5											
+66	F6											
+67	F7											
+68	F8											
+69	F9											
+70	F10											
+71	F11											
+72	F12											
+73	G1	NTC-2 ng spf	"RGB(142,142,56)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+73	G1	NTC-2 ng spf	"RGB(142,142,56)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+74	G2	NTC-2 ng spf	"RGB(142,142,56)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+74	G2	NTC-2 ng spf	"RGB(142,142,56)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+75	G3	NTC-2 ng spf	"RGB(142,142,56)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+75	G3	NTC-2 ng spf	"RGB(142,142,56)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+76	G4											
+77	G5											
+78	G6											
+79	G7											
+80	G8											
+81	G9											
+82	G10											
+83	G11											
+84	G12											
+85	H1	Water	"RGB(238,44,44)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+85	H1	Water	"RGB(238,44,44)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+86	H2	Water	"RGB(238,44,44)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+86	H2	Water	"RGB(238,44,44)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+87	H3	Water	"RGB(238,44,44)"			Cas	"RGB(0,0,255)"	UNKNOWN	FAM	NFQ-MGB		
+87	H3	Water	"RGB(238,44,44)"			LAMP	"RGB(176,23,31)"	UNKNOWN	VIC	NFQ-MGB		
+88	H4											
+89	H5											
+90	H6											
+91	H7											
+92	H8											
+93	H9											
+94	H10											
+95	H11											
+96	H12											

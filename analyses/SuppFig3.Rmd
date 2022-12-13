@@ -1,0 +1,194 @@
+---
+title: "SuppFig3"
+output: html_document
+date: '2022-12-01'
+editor_options: 
+  chunk_output_type: console
+---
+
+
+load libraries
+```{r}
+library(readxl)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+
+
+```
+
+read in TSV data
+
+```{r}
+
+data4 <- read.table("../data/TSV_SHERLOCKv2/raw/2022-02-22 TSV high-low background_Multicomponent Data_QuantStudio 12K Flex_export.txt", skip= 37,sep = "\t", header = T,check.names = F)
+
+
+meta_data4 <- read.table("../data/TSV_SHERLOCKv2/raw/2022-02-22 TSV high-low background_Sample Setup_QuantStudio 12K Flex_export.txt", skip= 37, header = T, sep = "\t", check.names = F)
+
+
+
+```
+
+
+
+combine data sets
+```{r}
+data4$ROX <- NULL
+
+data4_l <- pivot_longer(data4, names_to= "dye", values_to = "RFUs", 4:5)
+
+data4_l <- data4_l[grepl("[0-9]",data4_l$RFUs),]
+
+data4_l$`Well Position` <-gsub(" ", "", data4_l$`Well Position`)
+
+#merge with meta data
+data4_l <- merge(meta_data4[,2:3], data4_l, by = "Well Position")
+
+
+```
+
+
+add minutes column
+```{r}
+
+data4_l$minutes <- data4_l$Cycle *2
+
+```
+
+
+create columns for crRNA, template, and condition
+```{r}
+data4_l$carrier <- ifelse(grepl("spf",data4_l$`Sample Name`),10,0)
+
+data4_l$carrier <- ifelse(grepl("NTC-2", data4_l$`Sample Name`), 2,data4_l$carrier)
+
+data4_l$template <- ifelse(grepl("\\(", data4_l$`Sample Name`), gsub(".*\\) ","", data4_l$`Sample Name`),0)
+
+data4_l$template <- as.numeric(gsub(" .*","", data4_l$template))
+
+data4_l$dye <- ifelse(data4_l$dye == "VIC","VIC (SYTO-82, LAMP)","FAM (Cas cleavage)")
+
+
+```
+
+create columns for baseline subtracted fluorescence
+```{r}
+#convert RFUs to numeric
+data4_l$RFUs <- gsub(",","", data4_l$RFUs)
+
+
+#save RFU data for time 0 only
+t0 <- data4_l %>% group_by(Well) %>% filter(minutes == 2)
+#rename RFU column to t0_RFUs
+colnames(t0)[6] <- "t0_RFUs"
+
+data4_l <- unique(merge(data4_l, t0[,c("Well","dye", "t0_RFUs")], by = c("Well", "dye")))
+data4_l$rel_RFUs <- as.numeric(data4_l$RFUs) - as.numeric(data4_l$t0_RFUs)
+data4_l$date <- "02-22"
+
+```  
+
+
+
+read in TSV data
+
+```{r}
+
+data5 <- read.table("../data/TSV_SHERLOCKv2/raw/2022-02-28 background vs sample_Multicomponent Data_QuantStudio 12K Flex_export.txt", skip= 37,sep = "\t", header = T,check.names = F)
+
+
+meta_data5 <- read.table("../data/TSV_SHERLOCKv2/raw/2022-02-28 background vs sample_Sample Setup_QuantStudio 12K Flex_export.txt", skip= 37, header = T, sep = "\t", check.names = F)
+
+
+
+```
+
+
+
+combine data sets
+```{r}
+data5$ROX <- NULL
+
+data5_l <- pivot_longer(data5, names_to= "dye", values_to = "RFUs", 4:5)
+
+data5_l <- data5_l[grepl("[0-9]",data5_l$RFUs),]
+
+data5_l$`Well Position` <-gsub(" ", "", data5_l$`Well Position`)
+
+#merge with meta data
+data5_l <- merge(meta_data5[,2:3], data5_l, by = "Well Position")
+
+
+```
+
+
+add minutes column
+```{r}
+
+data5_l$minutes <- data5_l$Cycle *2
+
+```
+
+
+create columns for crRNA, template, and condition
+```{r}
+data5_l$dye <- ifelse(data5_l$dye == "VIC","VIC (SYTO-82, LAMP)","FAM (Cas cleavage)")
+
+data5_l$`Sample Name` <- gsub("\\+","_", data5_l$`Sample Name`)
+
+data5_l$carrier <- ifelse(grepl("0|2|5",substr(data5_l$`Sample Name`,0,2)), gsub("_.*","",data5_l$`Sample Name`), 0)
+
+data5_l$carrier <- as.numeric(ifelse(grepl("TSV", data5_l$`Sample Name`), gsub(".*_","",data5_l$`Sample Name`), data5_l$carrier))
+
+#data5_l$DNA<- ifelse(grepl("_1$|_100|_1M|10k", data5_l$`Sample Name`), "syn", "gDNA")
+
+
+data5_l <- data5_l %>% filter(grepl("TSV-5|NTC", data5_l$`Sample Name`))
+
+data5_l$template <- ifelse(grepl("1M TSV", data5_l$`Sample Name`), 1,0)
+data5_l$template <- ifelse(grepl("TSV-5 10", data5_l$`Sample Name`), 10,data5_l$template)
+
+
+
+```
+
+create columns for baseline subtracted fluorescence
+```{r}
+#convert RFUs to numeric
+data5_l$RFUs <- gsub(",","", data5_l$RFUs)
+
+
+#save RFU data for time 0 only
+t0 <- data5_l %>% group_by(Well) %>% filter(minutes == 2)
+#rename RFU column to t0_RFUs
+colnames(t0)[6] <- "t0_RFUs"
+
+data5_l <- unique(merge(data5_l, t0[,c("Well","dye", "t0_RFUs")], by = c("Well", "dye")))
+data5_l$rel_RFUs <- as.numeric(data5_l$RFUs) - as.numeric(data5_l$t0_RFUs)
+
+data5_l <- data5_l %>% filter(!is.na(rel_RFUs))
+
+data5_l$date <- "02-28"
+
+```  
+
+
+merge data together
+```{r}
+
+data_l <- rbind(data5_l%>% dplyr::select(date, Well, dye, minutes,carrier, template, rel_RFUs),data4_l%>% dplyr::select(date, Well, dye, minutes, carrier,template, rel_RFUs))
+
+data_l <- data_l %>% filter(minutes <= 60)
+```
+
+```{r}
+jpeg("../Supplemental_Material/Supp_figs/FigS3b_TSV_OnePot_relRFU_facet_template.jpg",width = 7, height =2, units = "in", res = 300 )
+data_l %>% filter(date == "02-22") %>% filter(carrier != 2) %>% filter(grepl("Cas",dye)) %>% filter(carrier == 10)%>% ggplot(aes(x = minutes, y = rel_RFUs, group =Well)) + geom_line(size = 0.5) + theme_bw() + labs(y = "relative RFUs")  + scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) +xlim(10,40) + facet_wrap(~template, ncol = 6)
+dev.off()
+
+jpeg("../Supplemental_Material/Supp_figs/FigS5a_TSV_OnePot_relRFU_facets_carrier.jpg",width = 7, height =2, units = "in", res = 300 )
+data_l %>% filter(date == "02-28") %>% filter(grepl("Cas",dye)) %>% ggplot(aes(x = minutes, y = rel_RFUs, group =Well, linetype = factor(template))) + geom_line(size = 0.5) + theme_bw() + labs(y = "relative RFUs")  + scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) +xlim(10,40) + scale_linetype_manual(values = c(3,2,1)) +facet_wrap(~carrier, ncol=4) + labs(linetype = "TSV-infected \nshrimp RNA (ng)")
+dev.off()
+```

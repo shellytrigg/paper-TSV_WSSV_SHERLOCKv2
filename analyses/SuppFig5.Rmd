@@ -1,7 +1,9 @@
 ---
-title: "SuppFig4"
+title: "SuppFig5"
 output: html_document
 date: '2022-11-10'
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -534,11 +536,11 @@ data_l <- rbind(data5_l%>% dplyr::select(Well, dye, minutes, template, rel_RFUs,
 ```
 
 ```{r}
-jpeg("../Supplemental_Material/Supp_figs/FigS4b_WSSV_OnePot_relRFU_facets_dye.jpg",width = 20, height =6, units = "in", res = 300 )
-data_l %>% filter(target == "WSSV") %>% filter(template != 0) %>% filter(template != 1e+08) %>% filter(template != 1e+07) %>% mutate(template = gsub("water","NTC", template)) %>% mutate(template = gsub("Water","NTC", template))  %>%ggplot(aes(x = minutes, y = rel_RFUs, group =Well, color = dye)) + geom_point() + geom_line(size = 0.5) + theme_bw() + labs(y = "relative RFUs")  + scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) + facet_grid(dye~template, scales = "free_y") +xlim(0,60) + scale_color_manual(values = c("springgreen3", "purple3")) + geom_hline(yintercept = 1e+06,linetype = 2, color = "blue") + geom_vline(xintercept = 30, linetype = 3)+theme(legend.position = "none")
+jpeg("../Supplemental_Material/Supp_figs/FigS5b_WSSV_OnePot_relRFU_facets_dye.jpg",width = 20, height =6, units = "in", res = 300 )
+data_l %>% filter(target == "WSSV") %>% filter(template != 0) %>% filter(template != 1e+08) %>% filter(template != 1e+07) %>% mutate(template = gsub("water","NTC", template)) %>% mutate(template = gsub("Water","NTC", template)) %>% mutate(template = gsub("1e","1.00E", template))  %>%ggplot(aes(x = minutes, y = rel_RFUs, group =Well, color = dye)) + geom_point() + geom_line(size = 0.5) + theme_bw() + labs(y = "relative RFUs")  + scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) + facet_grid(dye~template, scales = "free_y") +xlim(0,60) + scale_color_manual(values = c("springgreen3", "purple3")) + geom_hline(yintercept = 1e+06,linetype = 2, color = "blue") + geom_vline(xintercept = 30, linetype = 3)+theme(legend.position = "none") + theme(text = element_text(size = 20))
 dev.off()
 
-jpeg("../Supplemental_Material/Supp_figs/FigS4a_TSV_OnePot_relRFU_facets_dye.jpg",width = 20, height =6, units = "in", res = 300 )
-data_l %>% filter(target == "TSV") %>% mutate(template = gsub("Water","NTC", template)) %>% filter(template != "0.00E+00") %>% filter(template != "1.00E+00") %>%ggplot(aes(x = minutes, y = rel_RFUs, group =Well, color = dye)) + geom_point() + geom_line(size = 0.5) + theme_bw() + labs(y = "relative RFUs")  + scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) + facet_grid(dye~template, scales = "free_y") +xlim(0,60) + scale_color_manual(values = c("springgreen3", "purple3")) + geom_vline(xintercept = 30, linetype = 3) + geom_hline(yintercept = 1.5e+06,linetype = 2, color = "blue") +theme(legend.position = "none")
+jpeg("../Supplemental_Material/Supp_figs/FigS5a_TSV_OnePot_relRFU_facets_dye.jpg",width = 20, height =6, units = "in", res = 300 )
+data_l %>% filter(target == "TSV") %>% mutate(template = gsub("Water","NTC", template)) %>% filter(template != "0.00E+00") %>% filter(template != "1.00E+00") %>%ggplot(aes(x = minutes, y = rel_RFUs, group =Well, color = dye)) + geom_point() + geom_line(size = 0.5) + theme_bw() + labs(y = "relative RFUs")  + scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) + facet_grid(dye~template, scales = "free_y") +xlim(0,60) + scale_color_manual(values = c("springgreen3", "purple3")) + geom_vline(xintercept = 30, linetype = 3) + geom_hline(yintercept = 1.5e+06,linetype = 2, color = "blue") +theme(legend.position = "none")+ theme(text = element_text(size = 20))
 dev.off()
 ```

@@ -2,6 +2,8 @@
 title: "SuppFig1-2"
 output: html_document
 date: '2022-11-16'
+editor_options: 
+  chunk_output_type: console
 ---
 
 load libraries
@@ -10,6 +12,7 @@ library(dplyr)
 library(ggplot2)
 library(readxl)
 library(ggpubr)
+library(tidyr)
 
 ```
 
@@ -133,19 +136,22 @@ WSSV_cas_data <- WSSV_cas_data %>% mutate(rel_rfus = RFUs - T0) %>% filter(minut
 
 plot LAMP data
 ```{r}
-jpeg("../Supplemental_Material/Supp_figs/FigS1_LAMP_screen.jpg", width = 10, height = 5, units = "in", res = 300)
+jpeg("../Supplemental_Material/Supp_figs/FigS1_LAMP_screen.jpg", width = 11, height = 6, units = "in", res = 300)
 
 a <- ggplot(TSV_lamp_data %>% filter(copies > 100) %>% filter(template == "gB"), aes(x = minutes, y = rel_rfus, color = primer_set, group= Well))+ geom_point(size = 0.8) + geom_line() + theme_bw() + labs(y = "relative RFUs", x = "minutes", color = "TSV primer set")
 
 
 b <- ggplot(WSSV_lamp_data %>% filter(copies > 100), aes(x = minutes, y = rel_rfus, color = primer_set, group= Well))+ geom_point(size = 0.8) + geom_line() + theme_bw() + labs(y = "relative RFUs", x = "minutes", color = "WSSV primer set")
 
-c <- ggplot(WSSV_lamp_data2, aes(x = minutes, y = rel_rfus, color = factor(copies), group= Well))+ geom_point(size = 0.8) + geom_line() + theme_bw() + labs(y = "relative RFUs", x = "minutes", color = "WSSV copies") + facet_wrap(~primer_set, ncol = 4)
+c <- ggplot(WSSV_lamp_data2, aes(x = minutes, y = rel_rfus, linetype = factor(copies), group= Well)) + geom_line(size = 0.6) + theme_bw() + labs(y = "relative RFUs", x = "minutes", linetype = "WSSV copies") + facet_wrap(~primer_set, ncol = 4) + scale_linetype_manual(values = c(3,2,5,1))
 
 
 d <- ggarrange(ggarrange(a,b, ncol = 2, labels = c("a", "b")), c, nrow = 2, labels = c(NA,"c"))
 d
 dev.off()
+
+
+
 ```
 
 
