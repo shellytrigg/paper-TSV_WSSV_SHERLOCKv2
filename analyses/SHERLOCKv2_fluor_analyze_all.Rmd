@@ -1,7 +1,7 @@
 ---
 title: "SHERLOCKv2_fluor_analyze_all"
 output: html_document
-editor_options: 
+editor_options:
   chunk_output_type: console
 ---
 
@@ -14,18 +14,18 @@ library(dplyr)
 library(ggplot2)
 library(ggpubr)
 library(gtools)
-library(scales) 
+library(scales)
 
 ```
 
 ### Preprocessing ###
 - Open the .eds files in QuantStudio 12K Flex Software v1.4 (https://www.thermofisher.com/order/catalog/product/4472048)
-- Make sure Rox was not included as a passive reference. Under Setup -> Define -> Passive Reference (should say "None"). 
-- examine across all the experiments to identify the cycle at which the earliest Cas signal starts coming up. The cycle before that cycle is the end cycle for defining the baseline. 
-- For TSV, the start cycle is 1 and the end cycle is 4 for all experiments. 
-- For WSSV, the start cycle is 1 and the end cycle is 2 for all experiments. 
+- Make sure Rox was not included as a passive reference. Under Setup -> Define -> Passive Reference (should say "None").
+- examine across all the experiments to identify the cycle at which the earliest Cas signal starts coming up. The cycle before that cycle is the end cycle for defining the baseline.
+- For TSV, the start cycle is 1 and the end cycle is 4 for all experiments.
+- For WSSV, the start cycle is 1 and the end cycle is 2 for all experiments.
 - To set the start and end cycles for baseline correction, go into 'Analysis Settings' and uncheck Default settings under Ct settings for Cas, uncheck automatic threshold and uncheck automatic baseline. For TSV, set baseline start cycle to 1 and end cycle to 4, for WSSV set baseline start cycle to 1 and end cycle to 2. Then click apply analysis settings.
-- Export the results file in excel format. 
+- Export the results file in excel format.
 
 Read in TSV SHERLOCKv2 data
 ```{r}
@@ -222,7 +222,7 @@ QS_data$template <- gsub("1e0",format(1,scientific = T), QS_data$template)
 
 QS_data$CT <- gsub("Undetermined",NA, QS_data$CT)
 QS_data$CT <- as.numeric(QS_data$CT)
- 
+
 ```
 
 
@@ -243,9 +243,9 @@ dev.off()
 
 determining method for identifying outliers
 ```{r}
-#outliers can be determined by a number of methods. Calculate different stats for the standards to see which outlier removal leads to the most robust prediction of the standards. 
+#outliers can be determined by a number of methods. Calculate different stats for the standards to see which outlier removal leads to the most robust prediction of the standards.
 
-#filter data to exclude experiments without standard curves, only keep data for standard samples, and exclude replicates with undetermined CT values. 
+#filter data to exclude experiments without standard curves, only keep data for standard samples, and exclude replicates with undetermined CT values.
 #Convert CT column to numeric
 #exclude NTC samples
 #fivenum() function calculates max, min, median, 1st and 3rd quartiles
@@ -255,7 +255,7 @@ determining method for identifying outliers
 #exclude false positives filter(template > 0)
 #calculate the thresholds based on quartile method (1.5 * the difference between 1st and 3rd quartile)
 #filter for samples that have data for more than half of their replicates
-QS_STD_data_stats <- QS_data %>% filter(!grepl("03-24|04-21|04-27", date)) %>% filter(virus != "TSV" | date != "04-20") %>% filter(sample_type == "STD")%>% group_by(date, virus,`Sample Name`, template,num_reps)%>% summarise(FivNum = list(fivenum(CT)),mean = mean(CT, na.rm =T), sd = sd(CT, na.rm = T), count = sum(!is.na(CT)), mad_CT = mad(CT,na.rm = T)) %>% mutate(FivNum = lapply(FivNum,setNames,nm = c("min", "FirstQ", "median","ThirdQ", "max"))) %>% unnest_wider(FivNum) %>% mutate(at_least_3CTvals = ifelse(count >=num_reps/2, "keep","remove")) %>% filter(at_least_3CTvals == "keep") %>% filter(template > 0) 
+QS_STD_data_stats <- QS_data %>% filter(!grepl("03-24|04-21|04-27", date)) %>% filter(virus != "TSV" | date != "04-20") %>% filter(sample_type == "STD")%>% group_by(date, virus,`Sample Name`, template,num_reps)%>% summarise(FivNum = list(fivenum(CT)),mean = mean(CT, na.rm =T), sd = sd(CT, na.rm = T), count = sum(!is.na(CT)), mad_CT = mad(CT,na.rm = T)) %>% mutate(FivNum = lapply(FivNum,setNames,nm = c("min", "FirstQ", "median","ThirdQ", "max"))) %>% unnest_wider(FivNum) %>% mutate(at_least_3CTvals = ifelse(count >=num_reps/2, "keep","remove")) %>% filter(at_least_3CTvals == "keep") %>% filter(template > 0)
 
 #combine stats for standards calculated above with the data for each replicate of each standard sample (filtered the same as above)
 QS_STD_data <- merge(QS_data %>% filter(!grepl("03-24|04-21|04-27", date)) %>% filter(virus != "TSV" | date != "04-20") %>% filter(sample_type == "STD")%>% group_by(date, virus,`Sample Name`, template,num_reps) ,QS_STD_data_stats, by = c("date", "Sample Name","template","virus","num_reps"))
@@ -290,7 +290,7 @@ QS_STD_data$medDist1_method <- ifelse(QS_STD_data$CT >= QS_STD_data$median -1 & 
 
 
 
-#for the median distance of 1 method, keep the replicate if the CT is >= median - 1.5 cycles and <= median + 1.5 cycles 
+#for the median distance of 1 method, keep the replicate if the CT is >= median - 1.5 cycles and <= median + 1.5 cycles
 QS_STD_data$medDist1.5_method <- ifelse(QS_STD_data$CT >= QS_STD_data$median -1.5 & QS_STD_data$CT <= QS_STD_data$median +1.5, "keep", "remove")
 
 #for the median distance of 1 method, keep the replicate if the CT is >= median - 2 cycles and <= median + 1 cycles
@@ -320,8 +320,8 @@ dev.off()
 
 ```{r}
 #create a dataframe with model attributes
-#pivot longer condenses any column with 'method' in it into one column called method and puts the value (keep or remove) into a different column called 'action'. 
-#filter for methods that rely on the median CT 
+#pivot longer condenses any column with 'method' in it into one column called method and puts the value (keep or remove) into a different column called 'action'.
+#filter for methods that rely on the median CT
 #filter data for CT values that pass the threshold criteria (action == "keep")
 #count the number of replicates remaining for each sample and threshold for samples with at least half of the replicates remaining
 #broom::glance produces the model attributes for the linear models of CT ~ template for each experiment
@@ -387,12 +387,12 @@ QS_data_LOD$copies <- gsub("1e3",format(1000,scientific = T), QS_data_LOD$copies
 QS_data_LOD$copies <- gsub("1e2",format(100,scientific = T), QS_data_LOD$copies)
 QS_data_LOD$copies <- gsub("1e1",format(10,scientific = T), QS_data_LOD$copies)
 QS_data_LOD$copies <- gsub("1e0",format(1,scientific = T), QS_data_LOD$copies)
-  
+
  #convert TSV standards from copies/uL to copies/reaction
 QS_data_LOD$copies <- ifelse(QS_data_LOD$virus == "TSV" & QS_data_LOD$date == "06-23",20*as.numeric(QS_data_LOD$copies),as.numeric(QS_data_LOD$copies))
 
 
-jpeg("../Supplemental_Material/Supp_figs/FigS3bd_gDNA_LOD_CTmeans_x_actual_copies.jpg", width = 5, height = 7, units = "in", res = 300)
+jpeg("../Supplemental_Material/Supp_figs/FigS4bd_gDNA_LOD_CTmeans_x_actual_copies.jpg", width = 5, height = 7, units = "in", res = 300)
 a <- QS_data_LOD %>%  filter(virus == "TSV") %>% filter(!grepl("VP28",template)) %>%  group_by(date,virus,template, copies) %>% summarise(mean = mean(CT), sd = sd(CT)) %>% ggplot(aes(x = log10(copies), y = mean, color = interaction(date,template), group = interaction(date,template))) + geom_point(position = position_dodge(width = 0.1)) + geom_errorbar(aes(ymin = mean-sd, ymax = mean + sd),alpha = 0.5, size = 0.5, width = 0,position = position_dodge(width = 0.1))+ geom_smooth(method = "lm", se = F, size = 0.5, linetype = 2)+ stat_regline_equation(label.x = c(rep(5.5, 9)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 3)+ theme_bw() + labs(color = "sample", y = "Ct", x = "log10 copies") + scale_x_continuous(breaks =  c(seq(1,10,1)), limits = c(1,10)) +scale_y_continuous(breaks =  c(seq(4,14,2)), limits = c(4,14))+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank())
 
@@ -409,7 +409,7 @@ dev.off()
 predict copies for unknown samples
 
 ```{r}
-#merge filtered data with slope data 
+#merge filtered data with slope data
 QS_data_filtered <- merge(QS_data_filtered,slopes, by = c("date","virus"))
 
 
@@ -424,7 +424,7 @@ QS_data_filtered_summ <- QS_data_filtered%>% group_by(date, virus, template) %>%
 #plot standards (supp fig. 3a-b)
 ```{r}
 #standard CT means x actual copies
-jpeg("../Supplemental_Material/Supp_figs/FigS3ac_standardCTmeans_x_actual_copies.jpg", width = 5, height = 7, units = "in", res = 300)
+jpeg("../Supplemental_Material/Supp_figs/FigS4ac_standardCTmeans_x_actual_copies.jpg", width = 5, height = 7, units = "in", res = 300)
 #QS_data_filtered_summ %>% filter(!grepl("^[A-z]",template)) %>% mutate(template = as.numeric(template)) %>% ggplot(aes(x = log10(template), y = mean_CT, color = date)) + geom_point()+ geom_errorbar(aes(ymin = mean_CT-sd_CT, ymax = mean_CT + sd_CT),alpha = 0.5, size = 0.5, width = 0.1) + geom_smooth(method = "lm", se = F, size = 0.5)+ stat_regline_equation(label.x = c(rep(6,5)),aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 4)+ theme_bw() + labs(color = "experiment", y = "Ct", x = "copies") + facet_wrap(~virus, scale = "free")+ theme(text = element_text(size = 16)) + scale_x_continuous(limits = c(2,10),breaks =  c(seq(0,10,1)))
 
 a <- QS_data_filtered_summ %>% filter(!grepl("^[A-z]",template)) %>% mutate(template = as.numeric(template)) %>%  filter(virus == "TSV")%>% ggplot(aes(x = log10(template), y = mean_CT, color = date)) + geom_point()+ geom_errorbar(aes(ymin = mean_CT-sd_CT, ymax = mean_CT + sd_CT),alpha = 0.5, size = 0.5, width = 0) + geom_smooth(method = "lm", se = F, size = 0.5, linetype = 2)+ stat_regline_equation(label.x = 6,aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")), formula = y~ x, size = 3)+ theme_bw() + labs(color = "experiment", y = "Ct", x = "copies") + theme(text = element_text(size = 12)) + scale_x_continuous(limits = c(2,10),breaks =  c(seq(0,10,1))) +theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
@@ -460,17 +460,17 @@ dev.off()
 
 plot specificity (fig. 2c-d)
 ```{r}
-#create a df for positive samples after filtering 
+#create a df for positive samples after filtering
 positive_samples <- unique(QS_data_filtered %>% filter(sample_type == "UNK")  %>% filter(!grepl("02-09|12-21|03-24|06-23",date)) %>% filter(!grepl("TSV-5R|Water", template)) %>% dplyr::select(virus, template)) %>% mutate(result = "pos")
 
-unk_samples <- merge(positive_samples, unique(QS_data %>% filter(sample_type == "UNK")  %>% filter(!grepl("02-09|12-21|03-24|06-23",date)) %>% filter(!grepl("TSV-5R|Water", template)) %>% ungroup() %>% dplyr::select(virus, template)), by = c("virus","template"), all = T) 
+unk_samples <- merge(positive_samples, unique(QS_data %>% filter(sample_type == "UNK")  %>% filter(!grepl("02-09|12-21|03-24|06-23",date)) %>% filter(!grepl("TSV-5R|Water", template)) %>% ungroup() %>% dplyr::select(virus, template)), by = c("virus","template"), all = T)
 
 unk_samples[is.na(unk_samples)] = "neg"
 
 
 #combine with CT values
 spec <- merge(QS_data_filtered%>%filter(sample_type == "UNK")  %>% filter(!grepl("02-09|12-21|03-24|06-23",date)) %>% filter(!grepl("TSV-5R|Water", template)) %>% filter(!(template == "WSSV6" & date == "04-20")) %>%  filter(!(template == "Pvan009" & date == "04-12pm")) %>% dplyr::select(virus, template, CT), unk_samples, by =c("virus", "template"), all = T) %>% mutate(species = gsub("Pvan", "WSSV", template)) %>% mutate(species = gsub("[0-9]|[0-9][0-9]|[0-9][0-9][0-9]", "", species)) %>% mutate(CT = ifelse(is.na(CT),0,CT)) %>%mutate(species = gsub("-", "", species))%>% mutate(species = gsub("Val\\.", "TSV", species)) %>% mutate(species = gsub(" PVAN", "", species)) %>% group_by(species,template,virus,result) %>% summarise(n = n(),mean = mean(CT), sd = sd(CT))%>% group_by(species, virus,result) %>% summarise(n = n(), mean_mean = mean(mean), sd_mean = sd(mean)) %>% mutate(spec_label = factor(paste0(species," (",n,")")))
-                                                                  
+
 jpeg("../Figs/Fig2cd_specificity.jpg", width = 7, height = 3, units = "in", res = 300)
 a <-spec %>% filter(virus == "TSV") %>% ggplot(.,aes(x = factor(spec_label, levels = c("TSV (31)", "TSV (4)", "EHP (2)", "EMS (2)", "IHHNV (2)", "IMNV (2)", "WSSV (2)", "SPF (10)")) , y = mean_mean)) + geom_bar(color = "black",fill = "gray80",stat="identity") + geom_errorbar(aes(ymin = mean_mean - sd_mean, ymax = mean_mean +sd_mean, width= 0.25)) + labs(x = "Sample", y = "Ct") + theme_bw()  + theme(text = element_text(size = 12),axis.text.x=element_text(angle=45, hjust = 1))
 
@@ -549,7 +549,7 @@ TSV_qPCR_all$qPCR_cn <- ifelse(TSV_qPCR_all$qPCR_cn =="Undetermined", 0, as.nume
 
 #### plot susceptible vs. resistant for just SRM data ####
 jpeg("../Figs/Fig3c_TSV_qPCR_suscept_v_resist_SRM.jpg", width = 4, height = 3, units = "in", res = 300)
-ggplot(TSV_qPCR_all) + geom_histogram(aes(qPCR_cn, fill = type),color = "black", binwidth = 1, position = position_dodge()) + scale_x_log10(limits = c(10^0, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))+ scale_y_continuous(breaks = seq(1,20,2)) + theme_bw() + labs(y = "number of animals", x = "qPCR predicted copies/uL", fill = "shrimp strain") + theme(text = element_text(size = 14),legend.position=c(0.8,0.8),legend.background = element_rect(fill = "white", color = "black")) 
+ggplot(TSV_qPCR_all) + geom_histogram(aes(qPCR_cn, fill = type),color = "black", binwidth = 1, position = position_dodge()) + scale_x_log10(limits = c(10^0, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))+ scale_y_continuous(breaks = seq(1,20,2)) + theme_bw() + labs(y = "number of animals", x = "qPCR predicted copies/uL", fill = "shrimp strain") + theme(text = element_text(size = 14),legend.position=c(0.8,0.8),legend.background = element_rect(fill = "white", color = "black"))
 dev.off()
 ```
 
@@ -602,13 +602,13 @@ tested2x <- QS_data_filtered_summ_dil_qPCR %>% filter(template %in% tested2x$tem
 
 #create a new data frame with the SHERLOCK and qPCR data that keeps the SHERLOCK data for the repeat experiments only (and excludes the original SHERLOCK data for the samples that were repeated)
 #filter for SHERLOCK repeat data using the sample name and date listed in the data frame 'tested2x' and combine this with all the SHERLOCK and qPCR data for samples NOT listed in 'tested2x'
-QS_data_filtered_summ_dil_qPCR_keep_repeats <- rbind(unique(QS_data_filtered_summ_dil_qPCR %>% filter(template %in%tested2x$template & grepl(paste(unique(tested2x$date), collapse="|"),date))),QS_data_filtered_summ_dil_qPCR %>% filter(!(template %in%tested2x$template))) 
+QS_data_filtered_summ_dil_qPCR_keep_repeats <- rbind(unique(QS_data_filtered_summ_dil_qPCR %>% filter(template %in%tested2x$template & grepl(paste(unique(tested2x$date), collapse="|"),date))),QS_data_filtered_summ_dil_qPCR %>% filter(!(template %in%tested2x$template)))
 ```  
 
 #### plot SHERLOCKv2 vs. qCPR for TSV  ####
 ```{r}
 ggplot(QS_data_filtered_summ_dil_qPCR_keep_repeats, aes(x = qPCR_cn, y = `SHERLOCK_cp/uL_OG`))+ geom_point(size = 1)+theme_bw() + labs(y = "SHERLOCKv2 predicted copies/uL", x = "qPCR predicted copies/uL") + scale_x_log10(limits = c(10^-1, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + scale_y_log10(limits = c(10^-1, 10^10),breaks =trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x))) +  stat_cor(method = "pearson", size = 5) + theme(text = element_text(size = 10)) + facet_wrap(~virus)
-  
+
 #corr plot for just TSV with shrimp strain colored
 jpeg("../Figs/Fig3d_TSV_qPCR_SRMxSHERLOCKv2.jpg", width = 4, height = 3.5, units = "in", res = 300)
 QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "TSV") %>% mutate(shrimp_strain = ifelse(grepl("Val.1$|Val.16$|Val.21$|Val.26$|Val.35$", template),"susceptible", "tolerant")) %>% ggplot(aes(x = qPCR_cn, y = `SHERLOCK_cp/uL_OG`))+ geom_point(aes(color = shrimp_strain),size = 2)+theme_bw() + labs(y = "SHERLOCKv2 predicted copies/uL", x = "qPCR predicted copies/uL", color = "shrimp strain") + scale_x_log10(limits = c(10^-1, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + scale_y_log10(limits = c(10^-1, 10^10),breaks =trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x))) +  stat_cor(label.y.npc="top", label.x.npc = "middle", method = "pearson", size = 4) + theme(text = element_text(size = 14), legend.position=c(0.2,0.8),legend.background = element_rect(fill = "white", color = "black"))
@@ -631,12 +631,12 @@ wilcox.test(`SHERLOCK_cp/uL_OG` ~ shrimp_strain, data = QS_data_filtered_summ_di
 
 #### corr plot for WSSV SHERLOCKv2 vs. qPCR and SHERLOCKv1 #####
 ```{r}
-jpeg("../Figs/Fig4a_WSSV_qPCRxSHERLOCKv2.jpg", width = 4, height = 3.5, units = "in", res = 300)
+jpeg("../Figs/Fig5a_WSSV_qPCRxSHERLOCKv2.jpg", width = 4, height = 3.5, units = "in", res = 300)
 QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "WSSV") %>% ggplot(aes(x = qPCR_cn, y = `SHERLOCK_cp/uL_OG`))+ geom_point(size = 2)+theme_bw() + labs(y = "SHERLOCKv2 predicted copies/uL", x = "qPCR predicted copies/uL") + scale_x_log10(limits = c(10^-1, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + scale_y_log10(limits = c(10^-1, 10^10),breaks =trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x))) +  stat_cor(label.y.npc="top", label.x.npc = "left", method = "pearson", size = 4) + theme(text = element_text(size = 14))
 dev.off()
 
 #### corr plot for WSSV SHERLOCKv2 vs. SHERLOCKv1 #####
-jpeg("../Figs/Fig4b_WSSV_SHERLOCKv1xSHERLOCKv2.jpg", width = 4, height = 3.5, units = "in", res = 300)
+jpeg("../Figs/Fig5b_WSSV_SHERLOCKv1xSHERLOCKv2.jpg", width = 4, height = 3.5, units = "in", res = 300)
 QS_data_filtered_summ_dil_qPCR_keep_repeats %>% filter(virus == "WSSV") %>% ggplot(aes(x = SHERLOCK_cn, y = `SHERLOCK_cp/uL_OG`))+ geom_point(size = 2)+theme_bw() + labs(y = "SHERLOCKv2 predicted copies/uL", x = "SHERLOCKv1 predicted copies/uL") + scale_x_log10(limits = c(10^-1, 10^10),breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + scale_y_log10(limits = c(10^-1, 10^10),breaks =trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x))) +  stat_cor(label.y.npc="top", label.x.npc = "left", method = "pearson", size = 4) + theme(text = element_text(size = 14))
 dev.off()
 ```
@@ -656,16 +656,16 @@ write.csv(tableS3, "../Supplemental_Material/Tables/TableS3.csv", row.names = F,
 ### coefficient of variation across technical replicates ####
 
 ```{r}
-jpeg("../Supplemental_Material/Supp_figs/FigS5a_WSSV_SHERLOCKv1xSHERLOCKv2_CoV.jpg", width = 5, height = 4, units = "in", res = 300)
- tableS3 %>% filter(Target == "WSSV") %>% mutate(qPCR_cv = `qPCR predicted copies/uL (Std Dev)`/`qPCR predicted copies/uL (Mean)`, SHERLOCKv1_cv = `SHERLOCKv1 predicted copies/uL (Std Dev)`/`SHERLOCKv1 predicted copies/uL (mean)`, SHERLOCKv2_cv = `SHERLOCKv2 predicted copies/uL (Std Dev)`/`SHERLOCKv2 predicted copies/uL (Mean)`) %>% pivot_longer(cols = 9:11, names_to = "method", values_to = "cv") %>% mutate(method = gsub("_cv","", method)) %>% mutate(qPCR_bin = cut(`qPCR predicted copies/uL (Mean)`, breaks = c(0,1000,1000000,10000000000)) ) %>% mutate(qPCR_bin = gsub("\\(", "", qPCR_bin)) %>% mutate(qPCR_bin = gsub(","," to ", qPCR_bin)) %>% mutate(qPCR_bin = gsub("]", "", qPCR_bin)) %>%filter(method != "qPCR") %>% ggplot(aes(x = method, y = cv)) + geom_boxplot(color = "gray60", width = 0.4, outlier.shape = NA)  + geom_jitter(aes(color = qPCR_bin),width = 0.2, alpha = 0.7) + theme_bw() + labs(y = "coefficient of variation \n across technical replicates", color = "qPCR predicted \n viral copies") + scale_color_manual(values = c("gold2", "darkorange2", "red4")) + theme(text = element_text(size = 14)) 
+jpeg("../Supplemental_Material/Supp_figs/Fig4b_WSSV_SHERLOCKv1xSHERLOCKv2_CoV.jpg", width = 5, height = 4, units = "in", res = 300)
+ tableS3 %>% filter(Target == "WSSV") %>% mutate(qPCR_cv = `qPCR predicted copies/uL (Std Dev)`/`qPCR predicted copies/uL (Mean)`, SHERLOCKv1_cv = `SHERLOCKv1 predicted copies/uL (Std Dev)`/`SHERLOCKv1 predicted copies/uL (mean)`, SHERLOCKv2_cv = `SHERLOCKv2 predicted copies/uL (Std Dev)`/`SHERLOCKv2 predicted copies/uL (Mean)`) %>% pivot_longer(cols = 9:11, names_to = "method", values_to = "cv") %>% mutate(method = gsub("_cv","", method)) %>% mutate(qPCR_bin = cut(`qPCR predicted copies/uL (Mean)`, breaks = c(0,1000,1000000,10000000000)) ) %>% mutate(qPCR_bin = gsub("\\(", "", qPCR_bin)) %>% mutate(qPCR_bin = gsub(","," to ", qPCR_bin)) %>% mutate(qPCR_bin = gsub("]", "", qPCR_bin)) %>%filter(method != "qPCR") %>% ggplot(aes(x = method, y = cv)) + geom_boxplot(color = "gray60", width = 0.4, outlier.shape = NA)  + geom_jitter(aes(color = qPCR_bin),width = 0.2, alpha = 0.7) + theme_bw() + labs(y = "coefficient of variation \n across technical replicates", color = "qPCR predicted \n viral copies") + scale_color_manual(values = c("gold2", "darkorange2", "red4")) + theme(text = element_text(size = 14))
 dev.off()
 ```
 
 
 #### qPCR vs. SHERLOCKv2 predicted viral copies foldchange ####
 ```{r}
-jpeg("../Supplemental_Material/Supp_figs/FigS5b_qPCRvsSHERLOCKv2_ViralCopiesFC.jpg", width = 4.5, height = 4, units = "in", res = 300)
-tableS3 %>% mutate(fc = foldchange(`qPCR predicted copies/uL (Mean)`, `SHERLOCKv2 predicted copies/uL (Mean)`), direction = ifelse(fc < 0, "over", "under")) %>% filter(!is.na(fc))%>% mutate(direction = ifelse(-5 <= fc & fc <= 5, "similar",direction))  %>% ggplot(aes(x = Target, y = log10(abs(fc)))) + geom_boxplot(color = "gray60",width = 0.4, outlier.shape = NA) + geom_jitter(aes(color = direction), width = 0.2) + theme_bw() + labs(y = "qPCR:SHERLOCKv2 foldchange (log10)", color = "estimate of \n viral copies", x = "target")+ theme(text = element_text(size = 14)) 
+jpeg("../Supplemental_Material/Supp_figs/Fig4a_qPCRvsSHERLOCKv2_ViralCopiesFC.jpg", width = 4.5, height = 4, units = "in", res = 300)
+tableS3 %>% mutate(fc = foldchange(`qPCR predicted copies/uL (Mean)`, `SHERLOCKv2 predicted copies/uL (Mean)`), direction = ifelse(fc < 0, "over", "under")) %>% filter(!is.na(fc))%>% mutate(direction = ifelse(-5 <= fc & fc <= 5, "similar",direction))  %>% ggplot(aes(x = Target, y = log10(abs(fc)))) + geom_boxplot(color = "gray60",width = 0.4, outlier.shape = NA) + geom_jitter(aes(color = direction), width = 0.2) + theme_bw() + labs(y = "qPCR:SHERLOCKv2 foldchange (log10)", color = "estimate of \n viral copies", x = "target")+ theme(text = element_text(size = 14))
 dev.off()
 
 ````
